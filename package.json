@@ -1,0 +1,64 @@
+{
+  "name": "ipfss",
+  "author": "Iger",
+  "module": "dist/ipfss.esm.js",
+  "version": "0.1.0",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "scripts": {
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test",
+    "lint": "tsdx lint",
+    "prepare": "tsdx build",
+    "size": "size-limit",
+    "analyze": "size-limit --why"
+  },
+  "peerDependencies": {},
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "size-limit": [
+    {
+      "path": "dist/ipfss.cjs.production.min.js",
+      "limit": "10 KB"
+    },
+    {
+      "path": "dist/ipfss.esm.js",
+      "limit": "10 KB"
+    }
+  ],
+  "devDependencies": {
+    "@size-limit/preset-small-lib": "^4.11.0",
+    "@types/lodash": "^4.14.171",
+    "husky": "^6.0.0",
+    "size-limit": "^4.11.0",
+    "tsdx": "^0.14.1",
+    "tslib": "^2.2.0",
+    "typescript": "^4.2.4"
+  },
+  "dependencies": {
+    "@peculiar/webcrypto": "^1.1.7",
+    "cborg": "^1.3.1",
+    "ipfs-http-client": "^50.1.2",
+    "jose": "^3.12.3",
+    "lodash": "^4.17.21",
+    "web-encoding": "1.1.3"
+  }
+}
