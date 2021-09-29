@@ -279,6 +279,31 @@ export class SecureContext {
         cid: cids[index],
       }));
 
+    const collectCIDs = async (cid: Metadata | CID): Promise<CID[]> => {
+      const result: CID[] = [];
+      if (cid instanceof Metadata) {
+        result.push(cid.contentCID);
+        for (const ref of cid.references) {
+          result.push(
+            ref.cid,
+            // eslint-disable-next-line no-extra-parens
+            ...(await collectCIDs(await getMetadata(await getItem(ref.cid))))
+          );
+        }
+      } else {
+        const content = this.context.get(cid.toString());
+        if (!content) {
+          throw new Error(`Context does not have info on ${cid.toString()}`);
+        }
+        result.push(cid);
+        for (const link of content.links ?? []) {
+          // eslint-disable-next-line no-extra-parens
+          result.push(...(await collectCIDs(link.cid)));
+        }
+      }
+      return result;
+    };
+
     return {
       put: async (
         node: Uint8Array | Record<string, unknown>,
@@ -367,6 +392,19 @@ export class SecureContext {
           throw new Error(`Unknown CID: ${metadataCID.toString()}`);
         }
         return new SCID(cidMetadata.key, cidMetadata.iv, metadataCID);
+      },
+      getCIDs: async (cid: CID | SCID): Promise<CID[]> => {
+        let metadata: Metadata | null = null;
+        if (cid instanceof SCID) {
+          this.addToContext(cid.cid, cid.key, cid.iv);
+          metadata = await getMetadata(await getItem(cid.cid));
+        }
+        return [
+          // eslint-disable-next-line no-extra-parens
+          ...(await collectCIDs(metadata ?? (cid as CID))),
+          // eslint-disable-next-line no-extra-parens
+          ...(cid instanceof SCID ? [cid.cid] : []),
+        ];
       },
     };
   }

@@ -504,6 +504,79 @@ describe('Secure Context', () => {
 
     expect(value).toStrictEqual(data);
   });
+
+  describe('getCIDs', () => {
+    it('should collect content CID', async () => {
+      const cid = await secure.put({ text: 'secure' });
+
+      expect(await secure.getCIDs(cid)).toStrictEqual([cid]);
+    });
+
+    it('should collect linked content CIDs', async () => {
+      const cid1 = await secure.put({ text: 'secure' });
+      const cid2 = await secure.put({ ref: cid1 });
+
+      const cids = await secure.getCIDs(cid2);
+
+      expect(cids).toHaveLength(2);
+      expect(cids).toEqual(expect.arrayContaining([cid1, cid2]));
+    });
+
+    it('should collect CID with SCID', async () => {
+      const cid = await secure.put({ text: 'secure' });
+      const scid = await secure.share(cid, bob.publicKey!);
+
+      const bobContext = await SecureContext.create(bob);
+      const bobStore = bobContext.secure(ipfs);
+
+      const cids = await bobStore.getCIDs(scid);
+
+      expect(cids).toHaveLength(2);
+      expect(cids).toEqual(expect.arrayContaining([cid, scid.cid]));
+    });
+
+    it('should collect CID with SCID', async () => {
+      const cid1 = await secure.put({ text: 'secure' });
+      const cid2 = await secure.put({ ref: cid1 });
+
+      const scid = await secure.share(cid2, bob.publicKey!);
+
+      const bobContext = await SecureContext.create(bob);
+      const bobStore = bobContext.secure(ipfs);
+
+      const cids = await bobStore.getCIDs(scid);
+
+      expect(cids).toHaveLength(4);
+      expect(cids).toEqual(expect.arrayContaining([cid1, cid2, scid.cid]));
+    });
+
+    it('should collect deep nested CIDs with', async () => {
+      const cid = await secure.put({
+        a: await secure.put({
+          b: await secure.put({
+            c: await secure.put({
+              d: await secure.put([
+                {
+                  e: await secure.put({
+                    f: 5,
+                  }),
+                },
+              ]),
+            }),
+          }),
+        }),
+      });
+      const scid = await secure.share(cid, bob.publicKey!);
+
+      const bobContext = await SecureContext.create(bob);
+      const bobStore = bobContext.secure(ipfs);
+
+      const cids = await bobStore.getCIDs(scid);
+
+      expect(cids).toHaveLength(12); // 6 content CIDs and 6 metadata
+      expect(cids).toEqual(expect.arrayContaining([cid, scid.cid]));
+    });
+  });
 });
 
 async function scidToCose(ipfs: IPFSHTTPClient, scid: SCID, codec: BlockCodec) {
