@@ -1,103 +1,179 @@
-# TSDX User Guide
+# IPLDS - Secure DAG storage
 
-Congrats! You just saved yourself hours of work by bootstrapping this project with TSDX. Let’s get you oriented with what’s here and how to use it.
+The main goal of this library is to provide a mechanism for storing DAGs securely on IPFS, while being able to share any piece (subgraph) of that with an arbitrary recipient.
 
-> This TSDX setup is meant for developing libraries (not apps!) that can be published to NPM. If you’re looking to build a Node app, you could use `ts-node-dev`, plain `ts-node`, or simple `tsc`.
+This library relies on two existing specifications namely CBOR and COSE with some additional features designed for sensitive data storage applicability.
+While CBOR is designed for a fairly small message size, the COSE object structures are built on the CBOR array type and designed to allow better code
+reusability when parsing and processing the different types of [security messages](https://tools.ietf.org/html/rfc8152#section-2).
+The COSE specification additionally describes how to represent cryptographic keys using CBOR.
 
-> If you’re new to TypeScript, checkout [this handy cheatsheet](https://devhints.io/typescript)
+The library adheres some interfaces from [js-multiformats](https://github.com/multiformats/js-multiformats) for better compatibility.
 
-## Commands
-
-TSDX scaffolds your new library inside `/src`.
-
-To run TSDX, use:
+## Installation
 
 ```bash
-npm start # or yarn start
+yarn install iplds
 ```
 
-This builds to `/dist` and runs the project in watch mode so any edits you save inside `src` causes a rebuild to `/dist`.
+## Usage
 
-To do a one-off build, use `npm run build` or `yarn build`.
+```typescript
+import { create } from 'ipfs-http-client';
+import { Crypto } from '@peculiar/webcrypto';
+import { SecureContext } from 'iplds';
 
-To run tests, use `npm test` or `yarn test`.
+const crypto = new Crypto();
+const keyPair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, [
+  'deriveBits',
+]);
 
-## Configuration
+// create secure context providing data owner keypair
+const context = await SecureContext.create(keyPair);
 
-Code quality is set up for you with `prettier`, `husky`, and `lint-staged`. Adjust the respective fields in `package.json` accordingly.
+// create standard IPFS client
+const ipfs = create({ url: 'http://localhost:5001/api/v0' });
 
-### Jest
+// wrap it using secure context to enable encryption functionality 
+const store = context.secure(ipfs);
 
-Jest tests are set up to run with `npm test` or `yarn test`.
-
-### Bundle Analysis
-
-[`size-limit`](https://github.com/ai/size-limit) is set up to calculate the real cost of your library with `npm run size` and visualize the bundle with `npm run analyze`.
-
-#### Setup Files
-
-This is the folder structure we set up for you:
-
-```txt
-/src
-  index.tsx       # EDIT THIS
-/test
-  blah.test.tsx   # EDIT THIS
-.gitignore
-package.json
-README.md         # EDIT THIS
-tsconfig.json
 ```
 
-### Rollup
+### Writing & Reading
 
-TSDX uses [Rollup](https://rollupjs.org) as a bundler and generates multiple rollup configs for various module formats and build settings. See [Optimizations](#optimizations) for details.
+Once you secured IPFS client, you can use it to read and write data.
 
-### TypeScript
+#### Text
+```typescript
+const data = new TextEncoder().encode('secret text')
+const cid = await store.put(data);
+const { value } = await store.get(cid);
+new TextDecoder().decode(value) // secret text
+```
+#### Files
+```typescript
+import * as fs from 'fs';
 
-`tsconfig.json` is set up to interpret `dom` and `esnext` types, as well as `react` for `jsx`. Adjust according to your needs.
+const data = new Uint8Array(fs.readFileSync('scan.jpg'));
+const cid = await store.put(data);
+const { value: image } = await store.get(cid);
+```
+#### Objects
+You can store nested data and utilize path resolution to retrieve nested values:
+```typescript
+const data = {
+  a: {
+    b: {
+      c: {
+        d: [5],
+      },
+    },
+  },
+};
+const cid = await store.put(data);
+const { value } = await store.get(cid, { path: 'a/b/c/d/0' }); // 5
+```
 
-## Continuous Integration
+#### Linked data
+It is possible to store documents which includes links to encrypted documents stored on IPFS.
+```typescript
+const doc1 = await store.put({
+  name: 'Alice',
+});
+const doc2 = await store.put({
+  name: 'Bob',
+});
+const cid = await store.put({
+  name: 'User List',
+  users: [doc1, doc2],
+});
 
-### GitHub Actions
-
-Two actions are added by default:
-
-- `main` which installs deps w/ cache, lints, tests, and builds on all pushes against a Node and OS matrix
-- `size` which comments cost comparison of your library on every pull request using [`size-limit`](https://github.com/ai/size-limit)
-
-## Optimizations
-
-Please see the main `tsdx` [optimizations docs](https://github.com/palmerhq/tsdx#optimizations). In particular, know that you can take advantage of development-only optimizations:
-
-```js
-// ./types/index.d.ts
-declare var __DEV__: boolean;
-
-// inside your code...
-if (__DEV__) {
-  console.log('foo');
+const { value } = await store.get(cid);
+/**
+{
+  name: 'User List',
+  users: [
+    CID(bafyreicbhxiiaadww7f2teanepw75bkmjxmziqe5vdque6vqndsam7jnji),
+    CID(bafyreifet6anpdhfulvbgbrtcpdafpcsy7opvf3qme6crld5icmlpyl2nu)
+  ]
 }
+**/
+
 ```
+This becomes especially useful when combined with path resolution functionality.
+The library will traverse the metadata graph and retrieve the requested document.
+```typescript
+const doc1 = await store.put({
+  name: 'Alice',
+});
+const cid = await store.put({
+  name: 'User List',
+  users: [doc1],
+});
 
-You can also choose to install and use [invariant](https://github.com/palmerhq/tsdx#invariant) and [warning](https://github.com/palmerhq/tsdx#warning) functions.
+const { value } = await store.get(cid, { path: 'users/0' }); // { name: 'Alice' }
+```
+Path resolution mechanism offers unified syntax to address data inside the encrypred file and linked files.
+```typescript
+const user = {
+  a: {
+    b: {
+      c: { name: 'Alice' },
+    },
+  },
+};
 
-## Module Formats
+const parent = {
+  users: [
+    await store.put(user),
+  ],
+};
 
-CJS, ESModules, and UMD module formats are supported.
+const cid = await store.put(parent);
+const { value } = await store.get(cid, { path: 'users/0/a/b/c/name' }); // 'Alice'
+```
+Note that path resolution algorithm tries to deffer content reading as long as possible.
+It will first try to locate the target file by traversing the metadata graph. Then the file will be downloaded and decrypted to continue path resolution inside it.
 
-The appropriate paths are configured in `package.json` and `dist/index.js` accordingly. Please report if any issues are found.
+### Sharing
+The secure sharing is another powerful feature of this library. It comes into play when an encrypted content stored on the IPFS needs to be asynchronously shared with another party.
+The content is considered shared with someone when they know the CID and can use their private key to decrypt the content.
+This also implies that any content written with this library is automatically shared with the owner of the private key provided during secure context initialization.
 
-## Named Exports
+Here is an example of secure content sharing.
 
-Per Palmer Group guidelines, [always use named exports.](https://github.com/palmerhq/typescript#exports) Code split inside your React app instead of your React library.
+```typescript
+import { create } from 'ipfs-http-client';
+import { Crypto } from '@peculiar/webcrypto';
+import { SecureContext, SCID } from 'iplds';
 
-## Including Styles
+const ipfs = create({ url: 'http://localhost:5001/api/v0' });
+const crypto = new Crypto();
 
-There are many ways to ship styles, including with CSS-in-JS. TSDX has no opinion on this, configure how you like.
+// Here is Alice, who has some secret content stored on IPFS.
+const alice = await crypto.subtle.generateKey(
+  { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']
+);
+const aliceContext = await SecureContext.create(alice);
+const aliceStore = aliceContext.secure(ipfs);
+const cid = await aliceStore.put({ content: 'secret information'});
 
-For vanilla CSS, you can include it at the root directory and add it to the `files` section in your `package.json`, so that it can be imported separately by your users and run through their bundler's loader.
+// Here is Bob, who made his public key known to Alice.
+const bob = await crypto.subtle.generateKey(
+  { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']
+);
 
-## Publishing to NPM
+// Now Alice, can share use Bob's public key to create a shareable CID.
+const shareable = await aliceStore.share(cid, bob.publicKey!);
+const sCID = await shareable.asString();
 
-We recommend using [np](https://github.com/sindresorhus/np).
+// Later Bob can use his private key
+// and the CID received from Alice to retrieve the content.
+const bobContext = await SecureContext.create(bob);
+const bobStore = bobContext.secure(ipfs);
+const { value } = await bobStore.get(await SCID.from(sCID));
+//  { content: 'secret information' }
+```
+**NB:** A shareable CID alone does not give access to the encrypted content.
+However, it allows to access the encrypted content metadata which includes content encryption key identifier (`kid`).
+By default, the library uses opaque `kid`, derived from recipient public key, but it can be overridden.
+Since a `kid` value might contain personal identifying information, it should not be exposed to anyone other than content owner and recipient, as it might leak some sensitive information.
