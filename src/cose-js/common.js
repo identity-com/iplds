@@ -1,5 +1,6 @@
 'use strict';
-import { invert } from 'lodash';
+
+import { invertSimpleObject } from '../utils';
 
 const ALG_TAGS = {
   A128W: -3,
@@ -16,7 +17,7 @@ const TRANSLATORS = {
 
 const UNTRANSLATORS = {
   kid: (value) => new TextDecoder().decode(value),
-  alg: (value) => strictLookup(value, invert(ALG_TAGS), 'alg'),
+  alg: (value) => strictLookup(value, invertSimpleObject(ALG_TAGS), 'alg'),
 };
 
 const HEADER_PARAMETERS = {
@@ -56,8 +57,8 @@ const KEY_TRANSLATORS = {
 };
 
 const KEY_UNTRANSLATORS = {
-  kty: (key) => strictLookup(key, invert(KEY_TYPES), 'kty'),
-  crv: (key) => strictLookup(key, invert(KEY_CRV), 'crv'),
+  kty: (key) => strictLookup(key, invertSimpleObject(KEY_TYPES), 'kty'),
+  crv: (key) => strictLookup(key, invertSimpleObject(KEY_CRV), 'crv'),
 };
 
 const strictLookup = (key, target, paramName) => {
@@ -72,13 +73,13 @@ export const translateKey = (obj) =>
   translate(obj, KEY_PARAMETERS, KEY_TRANSLATORS);
 
 export const untranslateKey = (obj) =>
-  translate(obj, invert(KEY_PARAMETERS), KEY_UNTRANSLATORS);
+  translate(obj, invertSimpleObject(KEY_PARAMETERS), KEY_UNTRANSLATORS);
 
 export const translateHeaders = (obj) =>
   translate(obj, HEADER_PARAMETERS, TRANSLATORS);
 
 export const untranslateHeaders = (obj) =>
-  translate(obj, invert(HEADER_PARAMETERS), UNTRANSLATORS);
+  translate(obj, invertSimpleObject(HEADER_PARAMETERS), UNTRANSLATORS);
 
 export const translateKeyTypeToAlgorithm = (keyType) =>
   strictLookup(keyType, KEY_TYPES_TO_ALGORITHMS, 'key type');

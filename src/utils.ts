@@ -1,5 +1,5 @@
 import { CID } from 'ipfs-http-client';
-import { Link } from './types';
+import { Link, Recipient } from './types';
 
 const collectCIDsFromArray = function* (
   value: Record<string, unknown>[],
@@ -93,4 +93,24 @@ const createPath = (
     current = current[head] as Record<string, unknown>;
   }
   current[path[0]] = value;
+};
+
+export const invertSimpleObject = (
+  obj: Record<string, string | number>
+): Record<string | number, string> => {
+  const keys = Object.keys(obj);
+  const result: Record<string | number, string> = {};
+  for (const key of keys) {
+    result[obj[key]] = key;
+  }
+  return result;
+};
+
+export const cloneRecipient = (recipient: Recipient): Recipient => {
+  return [
+    { ...recipient[0] },
+    { ...recipient[1] },
+    new Uint8Array(recipient[2]),
+    recipient[3].map(cloneRecipient),
+  ];
 };
