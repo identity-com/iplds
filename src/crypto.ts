@@ -1,6 +1,6 @@
 import { Crypto } from '@peculiar/webcrypto';
 import { ecdh_es_a256kw } from './ecdh-es-akw';
-import { KeyAgreement } from './types';
+import { ECDHCurve, KeyAgreement } from './types';
 
 const ALG_ENCRYPTION = 'A256GCM';
 const ALG_KEY_AGREEMENT = 'ECDH-ES-A256KW'; // -31: https://datatracker.ietf.org/doc/html/rfc8152#section-12.5.1
@@ -10,14 +10,16 @@ export const IV_BYTES = IV_BITS / 8;
 
 const crypto = new Crypto();
 
-export const createECKey = async (curveName?: string): Promise<CryptoKeyPair> =>
+export const createECKey = async (
+  namedCurve: ECDHCurve = 'P-256'
+): Promise<CryptoKeyPair> =>
   await crypto.subtle.generateKey(
-    { 
+    {
       name: 'ECDH',
-      namedCurve: curveName ? curveName : 'P-256' 
+      namedCurve,
     },
     true,
-    [ 'deriveBits', ]
+    ['deriveBits']
   );
 
 export const createAESGCMKey = async (): Promise<CryptoKey> =>
