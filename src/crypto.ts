@@ -15,6 +15,11 @@ export const createECKey = async (): Promise<CryptoKeyPair> =>
     'deriveBits',
   ]);
 
+export const createETHECKey = async (): Promise<CryptoKeyPair> =>
+  await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'K-256' }, true, [
+    'deriveBits',
+  ]);
+
 export const createAESGCMKey = async (): Promise<CryptoKey> =>
   await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
     'encrypt',

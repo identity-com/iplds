@@ -117,7 +117,7 @@ const generateEpk = async (crv) =>
     'deriveBits',
   ]);
 
-const ecdhAllowed = (crv) => ['P-256', 'P-384', 'P-521'].includes(crv);
+const ecdhAllowed = (crv) => ['P-256', 'P-384', 'P-521', 'K-256'].includes(crv);
 
 const digest = async (algorithm, data) => {
   const subtleDigest = `SHA-${algorithm.substr(-3)}`;

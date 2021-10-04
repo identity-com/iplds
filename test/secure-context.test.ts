@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { BlockCodec, create } from 'ipfs-http-client';
 import { IPFSHTTPClient } from 'ipfs-http-client/dist/src/types';
 import { decrypt, translate } from '../src/cose-decrypt';
-import { createECKey, decryptAES } from '../src/crypto';
+import { createECKey, createETHECKey, decryptAES } from '../src/crypto';
 import { Metadata } from '../src/metadata';
 import { SecureContext } from '../src/secure-context';
 import { SecureIPFS } from '../src/secure-ipfs';
@@ -10,7 +10,10 @@ import { SCID } from '../src/scid';
 import { Cose } from '../src/types';
 import { SAMPLE_JSON } from './fixtures/data-fixture';
 
-describe('Secure Context', () => {
+describe.each([
+  [createECKey(), createECKey()], 
+  [createETHECKey(), createETHECKey()]
+])('Secure Context', (pAlice: Promise<CryptoKeyPair>, pBob: Promise<CryptoKeyPair>) => {
   let alice: CryptoKeyPair;
   let bob: CryptoKeyPair;
   let ctx: SecureContext;
@@ -22,8 +25,8 @@ describe('Secure Context', () => {
   });
 
   beforeEach(async () => {
-    alice = await createECKey();
-    bob = await createECKey();
+    alice = await pAlice;
+    bob = await pBob;
     ctx = await SecureContext.create(alice);
     secure = ctx.secure(ipfs);
   });
