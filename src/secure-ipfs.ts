@@ -12,4 +12,5 @@ export interface SecureIPFS {
   ): Promise<CID>;
   get(cid: CID | SCID, options?: GetOptions | string): Promise<GetResult>;
   share(cid: CID | SCID, publicKey: CryptoKey): Promise<SCID>;
+  getCIDs(cid: CID | SCID): Promise<CID[]>;
 }
