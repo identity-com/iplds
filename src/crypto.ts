@@ -10,15 +10,15 @@ export const IV_BYTES = IV_BITS / 8;
 
 const crypto = new Crypto();
 
-export const createECKey = async (): Promise<CryptoKeyPair> =>
-  await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, [
-    'deriveBits',
-  ]);
-
-export const createETHECKey = async (): Promise<CryptoKeyPair> =>
-  await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'K-256' }, true, [
-    'deriveBits',
-  ]);
+export const createECKey = async (curveName?: string): Promise<CryptoKeyPair> =>
+  await crypto.subtle.generateKey(
+    { 
+      name: 'ECDH',
+      namedCurve: curveName ? curveName : 'P-256' 
+    },
+    true,
+    [ 'deriveBits', ]
+  );
 
 export const createAESGCMKey = async (): Promise<CryptoKey> =>
   await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [

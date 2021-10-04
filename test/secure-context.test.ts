@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import { BlockCodec, create } from 'ipfs-http-client';
 import { IPFSHTTPClient } from 'ipfs-http-client/dist/src/types';
 import { decrypt, translate } from '../src/cose-decrypt';
-import { createECKey, createETHECKey, decryptAES } from '../src/crypto';
+import { createECKey, decryptAES } from '../src/crypto';
 import { Metadata } from '../src/metadata';
 import { SecureContext } from '../src/secure-context';
 import { SecureIPFS } from '../src/secure-ipfs';
@@ -12,7 +12,7 @@ import { SAMPLE_JSON } from './fixtures/data-fixture';
 
 describe.each([
   [createECKey(), createECKey()], 
-  [createETHECKey(), createETHECKey()]
+  [createECKey('K-256'), createECKey('K-256')]
 ])('Secure Context', (pAlice: Promise<CryptoKeyPair>, pBob: Promise<CryptoKeyPair>) => {
   let alice: CryptoKeyPair;
   let bob: CryptoKeyPair;
