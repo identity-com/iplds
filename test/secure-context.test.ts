@@ -11,9 +11,9 @@ import { Cose } from '../src/types';
 import { SAMPLE_JSON } from './fixtures/data-fixture';
 
 describe.each([
-  [createECKey(), createECKey()], 
-  [createECKey('K-256'), createECKey('K-256')]
-])('Secure Context', (pAlice: Promise<CryptoKeyPair>, pBob: Promise<CryptoKeyPair>) => {
+  [() => createECKey(), () => createECKey()], 
+  [() => createECKey('K-256'), () => createECKey('K-256')]
+])('Secure Context', (aliceGenerator: () => Promise<CryptoKeyPair>, bobGenerator: () => Promise<CryptoKeyPair>) => {
   let alice: CryptoKeyPair;
   let bob: CryptoKeyPair;
   let ctx: SecureContext;
@@ -25,8 +25,8 @@ describe.each([
   });
 
   beforeEach(async () => {
-    alice = await pAlice;
-    bob = await pBob;
+    alice = await aliceGenerator();
+    bob = await bobGenerator();
     ctx = await SecureContext.create(alice);
     secure = ctx.secure(ipfs);
   });
