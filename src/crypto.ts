@@ -1,4 +1,5 @@
 import { Crypto } from '@peculiar/webcrypto';
+import { CRV_ALG } from './cose-js/common';
 import { ecdh_es_a256kw } from './ecdh-es-akw';
 import { ECDHCurve, KeyAgreement } from './types';
 
@@ -15,7 +16,7 @@ export const createECKey = async (
 ): Promise<CryptoKeyPair> =>
   await crypto.subtle.generateKey(
     {
-      name: 'ECDH',
+      name: CRV_ALG[namedCurve],
       namedCurve,
     },
     true,

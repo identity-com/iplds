@@ -12,7 +12,8 @@ import { SAMPLE_JSON } from './fixtures/data-fixture';
 
 describe.each([
   [() => createECKey(), () => createECKey()], 
-  [() => createECKey('K-256'), () => createECKey('K-256')]
+  [() => createECKey('K-256'), () => createECKey('K-256')],
+  [() => createECKey('X25519'), () => createECKey('X25519')]
 ])('Secure Context', (aliceGenerator: () => Promise<CryptoKeyPair>, bobGenerator: () => Promise<CryptoKeyPair>) => {
   let alice: CryptoKeyPair;
   let bob: CryptoKeyPair;

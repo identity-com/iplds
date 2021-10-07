@@ -2,6 +2,9 @@
 
 import { invertSimpleObject } from '../utils';
 
+export const ECDH = 'ECDH';
+export const ECDH_ES = 'ECDH-ES';
+
 const ALG_TAGS = {
   A128W: -3,
   A192KW: -4,
@@ -44,13 +47,21 @@ const KEY_TYPES = {
 };
 
 const KEY_TYPES_TO_ALGORITHMS = {
-  EC2: 'ECDH',
+  EC2: ECDH,
+  OKP: ECDH_ES
 };
 
 export const KEY_CRV = {
   'P-256': 1,
+  'X25519': 6,
   'K-256': 8,
 };
+
+export const CRV_ALG = {
+  'P-256': ECDH,
+  'K-256': ECDH,
+  'X25519': ECDH_ES,
+}
 
 const KEY_TRANSLATORS = {
   kty: (key) => strictLookup(key, KEY_TYPES, 'kty'),
