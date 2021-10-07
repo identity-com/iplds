@@ -1,6 +1,7 @@
 import { CID } from 'ipfs-http-client';
 import { Metadata } from './metadata';
 import { ComplexObject } from './utils';
+import { KEY_CRV } from './cose-js/common';
 
 export type Link = {
   path: string;
@@ -14,6 +15,8 @@ export type SecureContextConfig = {
   keyId?: string;
   deterministicCID?: boolean;
 };
+
+export type ECDHCurve = keyof typeof KEY_CRV;
 
 export interface CIDMetadata {
   key: CryptoKey;

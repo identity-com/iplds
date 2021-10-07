@@ -47,8 +47,9 @@ const KEY_TYPES_TO_ALGORITHMS = {
   EC2: 'ECDH',
 };
 
-const KEY_CRV = {
+export const KEY_CRV = {
   'P-256': 1,
+  'K-256': 8,
 };
 
 const KEY_TRANSLATORS = {
