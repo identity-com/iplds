@@ -3,14 +3,9 @@
   "configurations": [
     {
       "type": "node",
-      "request": "launch",
-      "name": "jest",
-      "skipFiles": ["<node_internals>/**"],
-      "cwd": "${workspaceFolder}",
-      "runtimeArgs": ["--inspect-brk", "${workspaceRoot}/node_modules/.bin/jest", "--runInBand", "--coverage", "false"],
-      "console": "integratedTerminal",
-      "internalConsoleOptions": "neverOpen",
-      "sourceMaps": true
+      "request": "attach",
+      "name": "Attach",
+      "port": 9229
     }
   ]
 }
