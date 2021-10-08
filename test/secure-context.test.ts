@@ -269,12 +269,12 @@ describe.each([
     const ctx = await SecureContext.create({ ...alice });
     const ipfss = ctx.secure(ipfs);
 
-    expect((await ipfss.get(scid, { path: 'root/child/a/b/c/0' })).value).toBe(
-      5
-    );
-    expect((await ipfss.get(scid, { path: 'root/child/a/b/d/0' })).value).toBe(
-      6
-    );
+    expect(
+      (await ipfss.get(scid, { path: 'root/child/a/b/c/0' })).value
+    ).toBe(5);
+    expect(
+      (await ipfss.get(scid, { path: 'root/child/a/b/d/0' })).value
+    ).toBe(6);
   });
 
   it('should store/load complex object', async () => {
@@ -287,7 +287,9 @@ describe.each([
       await secure.put({"_id":"61443dd122d48154ecf5bf90","index":2,"guid":"e60a90e1-1a8e-4b8c-ada6-57230d0d60b4","isActive":true,"balance":"$3,702.63","picture":"http://placehold.it/32x32","age":39,"eyeColor":"blue","name":"Hinton Key","gender":"male","company":"STOCKPOST","email":"hintonkey@stockpost.com","phone":"+1 (809) 569-3098","address":"654 Duryea Place, Yogaville, Pennsylvania, 7558","about":"Enim nulla in ut fugiat labore culpa aliqua fugiat nisi reprehenderit laborum culpa exercitation anim. Ipsum aute officia ullamco cupidatat voluptate cillum mollit nulla Lorem ad et. Ut aliqua nulla eu ut aliquip laboris mollit enim deserunt. Officia sunt Lorem fugiat officia amet reprehenderit esse non mollit in irure nisi quis aute. Ad cillum esse nulla velit enim magna aute elit veniam. Pariatur minim qui elit occaecat laboris et qui id sint ut.\r\n","registered":"2021-03-11T03:55:02 -02:00","latitude":-86.45749,"longitude":-88.241173,"tags":["fugiat","id","exercitation","consequat","sit","non","adipisicing"],"friends":[{"id":0,"name":"Corine Chan"},{"id":1,"name":"Conway Rowland"},{"id":2,"name":"Sparks Ashley"}],"greeting":"Hello, Hinton Key! You have 1 unread messages.","favoriteFruit":"strawberry"}),
     ];
     const cid1 = await secure.put(obj1);
-    const image = new Uint8Array(fs.readFileSync('./test/samples/sample.jpg'));
+    const image = new Uint8Array(
+      fs.readFileSync('./test/samples/sample.jpg')
+    );
     const cid2 = await secure.put(image);
     const compoundDocument = await secure.put({
       document: cid1,
@@ -477,7 +479,9 @@ describe.each([
 
   it.skip('encrypt/decrypt large file', async () => {
     jest.setTimeout(0);
-    const large = new Uint8Array(fs.readFileSync('./test/samples/random.bin'));
+    const large = new Uint8Array(
+      fs.readFileSync('./test/samples/random.bin')
+    );
 
     const cid = await secure.put(large);
 
