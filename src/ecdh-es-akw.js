@@ -1,6 +1,7 @@
 import { encoder, uint32be, lengthAndInput, concatKdf } from './buffer-utils';
 import { Crypto } from '@peculiar/webcrypto';
 import { concat } from './utils';
+import { CRV_ALG } from './cose-js/common';
 
 const crypto = new Crypto();
 
@@ -78,7 +79,7 @@ export const decryptKeyManagement = async (
   return unwrap(sharedSecret, ecdhRecipient[2]);
 };
 
-const deriveKey = async (
+export const deriveKey = async (
   publicKey,
   privateKey,
   algorithm,
@@ -100,7 +101,7 @@ const deriveKey = async (
   const sharedSecret = new Uint8Array(
     await crypto.subtle.deriveBits(
       {
-        name: 'ECDH',
+        name: CRV_ALG[privateKey.algorithm.namedCurve],
         public: publicKey,
       },
       privateKey,
@@ -113,11 +114,11 @@ const deriveKey = async (
 
 // TODO: validate curve?
 const generateEpk = async (crv) =>
-  await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: crv }, true, [
+  await crypto.subtle.generateKey({ name: CRV_ALG[crv], namedCurve: crv }, true, [
     'deriveBits',
   ]);
 
-const ecdhAllowed = (crv) => ['P-256', 'P-384', 'P-521', 'K-256'].includes(crv);
+const ecdhAllowed = (crv) => ['P-256', 'P-384', 'P-521', 'K-256', 'X25519'].includes(crv);
 
 const digest = async (algorithm, data) => {
   const subtleDigest = `SHA-${algorithm.substr(-3)}`;
