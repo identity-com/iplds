@@ -106,11 +106,10 @@ export const invertSimpleObject = (
   return result;
 };
 
-export const cloneRecipient = (recipient: Recipient): Recipient => {
-  return [
+export const cloneRecipient = (recipient: Recipient): Recipient =>
+  [
     { ...recipient[0] },
     { ...recipient[1] },
     new Uint8Array(recipient[2]),
     recipient[3].map(cloneRecipient),
-  ];
-};
+  ] as Recipient;
