@@ -9,7 +9,7 @@ const ALG_KEY_AGREEMENT = 'ECDH-ES-A256KW'; // -31: https://datatracker.ietf.org
 export const encryptRaw = async function (
   encoded: Uint8Array,
   recipientKID: string,
-  keyAgreement: KeyAgreement
+  keyAgreement: KeyAgreement,
 ): Promise<Uint8Array> {
   const cose = await encryptToCOSE(encoded, recipientKID, keyAgreement);
   return encodeCOSE(cose);
@@ -18,7 +18,7 @@ export const encryptRaw = async function (
 export const encryptToCOSE = async function (
   encoded: Uint8Array,
   recipientKID: string,
-  keyAgreement: KeyAgreement
+  keyAgreement: KeyAgreement,
 ): Promise<Cose> {
   const iv = generateIV();
 
@@ -32,11 +32,7 @@ export const encryptToCOSE = async function (
       iv,
     },
     res,
-    await initAESKWRecipients(
-      keyAgreement.encryptedKey,
-      recipientKID,
-      keyAgreement.parameters.epk
-    ),
+    await initAESKWRecipients(keyAgreement.encryptedKey, recipientKID, keyAgreement.parameters.epk),
   ];
 };
 
@@ -52,9 +48,8 @@ export const encodeCOSE = (cose: Cose): Uint8Array => {
 export const encrypt = async (
   plainObj: unknown,
   recipientPublicKID: string,
-  keyMgmt: KeyAgreement
-): Promise<Uint8Array> =>
-  await encryptRaw(encode(plainObj), recipientPublicKID, keyMgmt);
+  keyMgmt: KeyAgreement,
+): Promise<Uint8Array> => await encryptRaw(encode(plainObj), recipientPublicKID, keyMgmt);
 
 /**
  *
@@ -63,11 +58,7 @@ export const encrypt = async (
  * @param epk - ephemeral public key
  * @returns ECDH-AKW Recipient layer of the COSE structure
  */
-const initAESKWRecipients = async (
-  encryptedKey: Uint8Array,
-  kid: string,
-  epk: CryptoKey
-): Promise<Recipient[]> => {
+const initAESKWRecipients = async (encryptedKey: Uint8Array, kid: string, epk: CryptoKey): Promise<Recipient[]> => {
   const single: Recipient = [
     {
       alg: ALG_KEY_AGREEMENT,

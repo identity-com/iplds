@@ -4,7 +4,7 @@ import { Link, Recipient } from './types';
 const collectCIDsFromArray = function* (
   value: Record<string, unknown>[],
   path: (string | number)[],
-  ivResolver: (cid: CID) => Uint8Array
+  ivResolver: (cid: CID) => Uint8Array,
 ): Iterable<Link> {
   for (const [index, element] of value.entries()) {
     const elementPath = [...path, index];
@@ -20,7 +20,7 @@ const collectCIDsFromArray = function* (
 const collectCIDsFromNested = function* (
   value: Record<string, unknown> | undefined,
   path: (string | number)[],
-  ivResolver: (cid: CID) => Uint8Array
+  ivResolver: (cid: CID) => Uint8Array,
 ): Iterable<Link> {
   const cid = CID.asCID(value);
   if (cid) {
@@ -33,7 +33,7 @@ const collectCIDsFromNested = function* (
 export const links = function* (
   source: Record<string, unknown> | undefined,
   ivResolver: (cid: CID) => Uint8Array,
-  base: (string | number)[] = []
+  base: (string | number)[] = [],
 ): Iterable<Link> {
   /* eslint-disable-next-line eqeqeq, curly */
   if (source == null) return;
@@ -46,11 +46,7 @@ export const links = function* (
       if (Array.isArray(value)) {
         yield* collectCIDsFromArray(value, path, ivResolver);
       } else {
-        yield* collectCIDsFromNested(
-          value as Record<string, unknown>,
-          path,
-          ivResolver
-        );
+        yield* collectCIDsFromNested(value as Record<string, unknown>, path, ivResolver);
       }
     }
   }
@@ -78,11 +74,7 @@ export const buildLinkObject = (links: Link[]): ComplexObject => {
   return result;
 };
 
-const createPath = (
-  obj: Record<string, unknown>,
-  path: string[],
-  value: unknown = null
-): void => {
+const createPath = (obj: Record<string, unknown>, path: string[], value: unknown = null): void => {
   let current = obj;
   while (path.length > 1) {
     const [head, ...tail] = path;
@@ -95,9 +87,7 @@ const createPath = (
   current[path[0]] = value;
 };
 
-export const invertSimpleObject = (
-  obj: Record<string, string | number>
-): Record<string | number, string> => {
+export const invertSimpleObject = (obj: Record<string, string | number>): Record<string | number, string> => {
   const keys = Object.keys(obj);
   const result: Record<string | number, string> = {};
   for (const key of keys) {

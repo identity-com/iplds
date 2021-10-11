@@ -1,11 +1,6 @@
 import { CID } from 'ipfs-http-client';
 import { sha256 } from 'multiformats/hashes/sha2';
-import {
-  createAESGCMKey,
-  decryptAES,
-  encryptAES,
-  generateIV,
-} from '../src/crypto';
+import { createAESGCMKey, decryptAES, encryptAES, generateIV } from '../src/crypto';
 import { Link } from '../src/types';
 import { buildLinkObject, links } from '../src/utils';
 import { SAMPLE_JSON } from './fixtures/data-fixture';
@@ -14,14 +9,10 @@ describe('AES', () => {
   it('should encrypt/decrypt', async () => {
     const iv = generateIV();
     const key = await createAESGCMKey();
-    const encrypted = await encryptAES(
-      new TextEncoder().encode(JSON.stringify(SAMPLE_JSON)),
-      key,
-      iv
-    );
+    const encrypted = await encryptAES(new TextEncoder().encode(JSON.stringify(SAMPLE_JSON)), key, iv);
 
     const decrypted = await decryptAES(encrypted, key, iv);
-    const data = JSON.parse(new TextDecoder().decode(decrypted));
+    const data: unknown = JSON.parse(new TextDecoder().decode(decrypted));
 
     expect(data).toEqual(SAMPLE_JSON);
   });
@@ -58,7 +49,7 @@ describe('Build links', () => {
       { path: 'a/b/x/y/z', cid: cid2, iv },
     ];
 
-    const obj = buildLinkObject(links) as any;
+    const obj = buildLinkObject(links);
 
     expect(obj.a.b.c.d.e).toStrictEqual(cid1);
     expect(obj.a.b.x.y.z).toStrictEqual(cid2);

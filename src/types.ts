@@ -30,12 +30,7 @@ export type CoseAlg = {
 
 export type Cose = [CoseAlg, CoseAesGcmParams, Uint8Array, Array<Recipient>];
 
-export type Recipient = [
-  CoseAlg,
-  RecipientAddress,
-  Uint8Array,
-  Array<Recipient>
-];
+export type Recipient = [CoseAlg, RecipientAddress, Uint8Array, Array<Recipient>];
 
 export type RecipientAddress = {
   kid: string;

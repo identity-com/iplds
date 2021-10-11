@@ -5,7 +5,7 @@ export class Metadata {
   constructor(
     public readonly contentCID: CID,
     public readonly iv: Uint8Array,
-    public readonly references: Link[] = []
+    public readonly references: Link[] = [],
   ) {}
 
   static clone(metadata: Metadata): Metadata {

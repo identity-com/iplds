@@ -36,23 +36,14 @@ module.exports = {
     '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'error',
     '@typescript-eslint/no-unnecessary-condition': 'error',
     '@typescript-eslint/no-unused-vars': 'off',
-    '@typescript-eslint/no-unused-vars-experimental': [
-      'error',
-      { ignoredNamesRegex: '^_' },
-    ],
+    '@typescript-eslint/no-unused-vars-experimental': ['error', { ignoredNamesRegex: '^_' }],
     '@typescript-eslint/prefer-for-of': 'error',
     '@typescript-eslint/prefer-nullish-coalescing': 'error',
     '@typescript-eslint/prefer-optional-chain': 'error',
     '@typescript-eslint/prefer-readonly': 'error',
     '@typescript-eslint/promise-function-async': 'error',
-    '@typescript-eslint/restrict-plus-operands': [
-      'error',
-      { checkCompoundAssignments: true },
-    ],
-    '@typescript-eslint/restrict-template-expressions': [
-      'error',
-      { allowAny: true },
-    ],
+    '@typescript-eslint/restrict-plus-operands': ['error', { checkCompoundAssignments: true }],
+    '@typescript-eslint/restrict-template-expressions': ['error', { allowAny: true }],
     '@typescript-eslint/switch-exhaustiveness-check': 'error',
     '@typescript-eslint/unified-signatures': 'error',
     '@typescript-eslint/return-await': 'off',
@@ -103,4 +94,12 @@ module.exports = {
     'no-useless-computed-key': 'error',
     'require-await': 'error',
   },
+  overrides: [
+    {
+      files: ['*.test.ts'],
+      rules: {
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+      },
+    },
+  ],
 };

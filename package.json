@@ -31,7 +31,7 @@
     "docker:stop": "docker-compose down",
     "test": "yarn docker:start && yarn test:jest; yarn docker:stop",
     "test:jest": "jest",
-    "lint": "eslint \"src/**/*\"",
+    "lint": "eslint \"**/*.ts\"",
     "lint:fix": "yarn lint --fix",
     "prepare": "husky install && yarn build",
     "size": "size-limit",

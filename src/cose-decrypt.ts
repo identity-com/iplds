@@ -1,9 +1,5 @@
 import { getIV, getRecipientId } from './cose';
-import {
-  translateKeyTypeToAlgorithm,
-  untranslateHeaders,
-  untranslateKey,
-} from './cose-js/common';
+import { translateKeyTypeToAlgorithm, untranslateHeaders, untranslateKey } from './cose-js/common';
 import { decryptAES, importJWKKey, importRawAESGCMKey } from './crypto';
 import { decryptKeyManagement } from './ecdh-es-akw';
 import { Cose, Recipient } from './types';
@@ -13,7 +9,7 @@ const ALG_KEY_AGREEMENT = 'ECDH-ES-A256KW'; // -31: https://datatracker.ietf.org
 
 export const decrypt = async function (
   cose: Cose,
-  recipientPrivate: CryptoKey
+  recipientPrivate: CryptoKey,
 ): Promise<{ content: Uint8Array; key: CryptoKey; kid: string }> {
   const recipient = cloneRecipient(cose[3][0]);
 
@@ -21,11 +17,7 @@ export const decrypt = async function (
     recipient[1].epk = await fromCOSEKey(cose[3][0][1].epk);
   }
 
-  const cekRaw = await decryptKeyManagement(
-    ALG_KEY_AGREEMENT,
-    recipientPrivate,
-    recipient
-  );
+  const cekRaw = await decryptKeyManagement(ALG_KEY_AGREEMENT, recipientPrivate, recipient);
 
   const cek = await importRawAESGCMKey(cekRaw);
   const iv = getIV(cose);

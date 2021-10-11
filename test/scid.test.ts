@@ -24,9 +24,9 @@ describe('SCID', () => {
   });
 });
 
-async function createSCID() {
+const createSCID = async (): Promise<SCID> => {
   const key = await createAESGCMKey();
   const iv = generateIV();
   const hash = await sha256.digest(Uint8Array.from([1, 2, 3]));
   return new SCID(key, iv, CID.createV1(0, hash));
-}
+};
