@@ -1,7 +1,9 @@
 import { Crypto } from '@peculiar/webcrypto';
-import { CRV_ALG } from './cose-js/common';
 import { ecdh_es_a256kw } from './ecdh-es-akw';
 import { ECDHCurve, KeyAgreement } from './types';
+import { ec as EC } from 'elliptic';
+import { CRV_ALG, ECDH, ECDH_ES } from './cose-js/common';
+
 
 const ALG_ENCRYPTION = 'A256GCM';
 const ALG_KEY_AGREEMENT = 'ECDH-ES-A256KW'; // -31: https://datatracker.ietf.org/doc/html/rfc8152#section-12.5.1
@@ -21,6 +23,21 @@ export const createECKey = async (namedCurve: ECDHCurve = 'P-256'): Promise<Cryp
     ['deriveBits'],
   );
 
+export const createEC25519Key = async (): Promise<CryptoKeyPair> =>
+  await crypto.subtle.generateKey(
+    {
+      name: ECDH_ES,
+      namedCurve: 'X25519',
+    },
+    true,
+    ['deriveBits']
+  );
+  
+export const createEllipticECKey = async (cryptoKeyPair: CryptoKeyPair): Promise<EC.KeyPair> => {
+  const ec = new EC('p256');
+  return ec.keyFromPrivate(await exportPKCS8Key(cryptoKeyPair.privateKey!));
+};
+
 export const createAESGCMKey = async (): Promise<CryptoKey> =>
   await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
 
@@ -39,6 +56,9 @@ export const sha256Raw = async (data: Uint8Array): Promise<Uint8Array> =>
 
 export const exportRawKey = async (key: CryptoKey): Promise<Uint8Array> =>
   new Uint8Array(await crypto.subtle.exportKey('raw', key));
+
+export const exportPKCS8Key = async (key: CryptoKey): Promise<Uint8Array> =>
+  new Uint8Array(await crypto.subtle.exportKey('pkcs8', key));
 
 export const exportJWKKey = async (key: CryptoKey): Promise<JsonWebKey> => await crypto.subtle.exportKey('jwk', key);
 
