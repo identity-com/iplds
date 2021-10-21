@@ -59,6 +59,13 @@ module.exports = {
       },
     ],
 
+    'prettier/prettier': [
+      'error',
+      {
+        'endOfLine': 'auto'
+      },
+    ],
+    
     // eslint:recommended additional rules & best practices
     'no-extra-parens': 'error',
     'no-template-curly-in-string': 'error',
