@@ -82,5 +82,8 @@
   ],
   "lint-staged": {
     "**/*.ts": "yarn lint:fix"
+  },
+  "resolutions": {
+    "**/ua-parser-js": "1.0.1"
   }
 }
