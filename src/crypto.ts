@@ -34,8 +34,8 @@ export const createEC25519Key = async (): Promise<CryptoKeyPair> =>
   );
   
 export const createEllipticECKey = async (cryptoKeyPair: CryptoKeyPair): Promise<EC.KeyPair> => {
-  const ec = new EC('p256');
-  return ec.keyFromPrivate(await exportPKCS8Key(cryptoKeyPair.privateKey!));
+  const ec = new EC('secp256k1');
+  return ec.keyFromPrivate(await cryptoToEllipticPrivate(cryptoKeyPair.privateKey!));
 };
 
 export const createAESGCMKey = async (): Promise<CryptoKey> =>
@@ -57,8 +57,16 @@ export const sha256Raw = async (data: Uint8Array): Promise<Uint8Array> =>
 export const exportRawKey = async (key: CryptoKey): Promise<Uint8Array> =>
   new Uint8Array(await crypto.subtle.exportKey('raw', key));
 
-export const exportPKCS8Key = async (key: CryptoKey): Promise<Uint8Array> =>
-  new Uint8Array(await crypto.subtle.exportKey('pkcs8', key));
+export const cryptoToEllipticPrivate = async (key: CryptoKey): Promise<Uint8Array> => {
+  const jwkKey = await exportJWKKey(key);
+  return jwkToEllipticPrivate(jwkKey);
+}
+
+export const jwkToEllipticPrivate = async (key: JsonWebKey): Promise<Uint8Array> => {
+  return new Uint8Array(Buffer.from(key.d!, 'base64url'));
+}
+
+export const jwkToEllipticPublic = (jwk: JsonWebKey): Uint8Array => Uint8Array.from(Buffer.from(jwk.x!, 'base64url'));
 
 export const exportJWKKey = async (key: CryptoKey): Promise<JsonWebKey> => await crypto.subtle.exportKey('jwk', key);
 
