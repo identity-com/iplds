@@ -47,6 +47,7 @@ const KEY_TYPES = {
 };
 
 const KEY_TYPES_TO_ALGORITHMS = {
+  EC: ECDH,
   EC2: ECDH,
   OKP: ECDH_ES
 };

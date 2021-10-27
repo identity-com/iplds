@@ -51,7 +51,7 @@ export const ecdh_es_a256kw = async (
 export const decryptKeyManagement = async (
   alg,
   recipientPrivate,
-  ecdhRecipient
+  keyAgreement
 ) => {
   // Direct Key Agreement
   if (!ecdhAllowed(recipientPrivate.algorithm.namedCurve)) {
@@ -60,14 +60,14 @@ export const decryptKeyManagement = async (
 
   let partyUInfo;
   let partyVInfo;
-  if (ecdhRecipient.apu !== undefined) {
-    partyUInfo = base64url(ecdhRecipient.apu);
+  if (keyAgreement.parameters.apu !== undefined) {
+    partyUInfo = base64url(keyAgreement.parameters.apu);
   }
-  if (ecdhRecipient.apv !== undefined) {
-    partyVInfo = base64url(ecdhRecipient.apv);
+  if (keyAgreement.parameters.apv !== undefined) {
+    partyVInfo = base64url(keyAgreement.parameters.apv);
   }
   const sharedSecret = await deriveKey(
-    ecdhRecipient[1].epk,
+    keyAgreement.parameters.epk,
     recipientPrivate,
     alg,
     parseInt(alg.substr(-5, 3), 10),
@@ -76,7 +76,7 @@ export const decryptKeyManagement = async (
   );
 
   // Key Agreement with Key Wrapping
-  return unwrap(sharedSecret, ecdhRecipient[2]);
+  return unwrap(sharedSecret, keyAgreement.encryptedKey);
 };
 
 export const deriveKey = async (

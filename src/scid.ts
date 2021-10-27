@@ -1,13 +1,13 @@
 import { CID } from 'ipfs-http-client';
 import { identity } from 'multiformats/hashes/identity';
-import { exportRawKey, importRawAESGCMKey, IV_BYTES } from './crypto';
+import { exportRawAESGCMKey, importRawAESGCMKey, IV_BYTES } from './crypto';
 import { concat } from './utils';
 
 const KEY_BYTES = 32;
 const CID_BYTES = 36;
 
 export class SCID {
-  constructor(public readonly key: CryptoKey, public readonly iv: Uint8Array, public readonly cid: CID) {}
+  constructor(public readonly key: JsonWebKey, public readonly iv: Uint8Array, public readonly cid: CID) {}
 
   static async from(cid: string | CID): Promise<SCID> {
     const sharedCID = CID.asCID(cid) ?? CID.parse(cid as string);
@@ -31,7 +31,9 @@ export class SCID {
   }
 
   async asCID(): Promise<CID> {
-    const digest = await identity.digest(concat(this.cid.bytes, this.iv, new Uint8Array(await exportRawKey(this.key))));
+    const digest = await identity.digest(
+      concat(this.cid.bytes, this.iv, new Uint8Array(await exportRawAESGCMKey(this.key))),
+    );
 
     return CID.createV1(identity.code, digest);
   }

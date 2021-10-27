@@ -1,6 +1,6 @@
 import { encode } from 'cborg';
 import { translateHeaders, translateKey } from './cose-js/common';
-import { encryptAES, exportJWKKey, generateIV } from './crypto';
+import { encryptAES, generateIV } from './crypto';
 import { Cose, KeyAgreement, Recipient } from './types';
 
 const ALG_ENCRYPTION = 'A256GCM';
@@ -32,7 +32,7 @@ export const encryptToCOSE = async function (
       iv,
     },
     res,
-    await initAESKWRecipients(keyAgreement.encryptedKey, recipientKID, keyAgreement.parameters.epk),
+    initAESKWRecipients(keyAgreement.encryptedKey, recipientKID, keyAgreement.parameters.epk),
   ];
 };
 
@@ -58,14 +58,14 @@ export const encrypt = async (
  * @param epk - ephemeral public key
  * @returns ECDH-AKW Recipient layer of the COSE structure
  */
-const initAESKWRecipients = async (encryptedKey: Uint8Array, kid: string, epk: CryptoKey): Promise<Recipient[]> => {
+const initAESKWRecipients = (encryptedKey: Uint8Array, kid: string, epk: JsonWebKey): Recipient[] => {
   const single: Recipient = [
     {
       alg: ALG_KEY_AGREEMENT,
     },
     {
       kid: kid,
-      epk: toCOSEKey(await exportJWKKey(epk)),
+      epk: toCOSEKey(epk),
     },
     encryptedKey,
     [],

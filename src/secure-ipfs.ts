@@ -7,6 +7,6 @@ export interface SecureIPFS {
     options?: PutOptions,
   ): Promise<CID>;
   get(cid: CID | SCID, options?: GetOptions | string): Promise<GetResult>;
-  share(cid: CID | SCID, publicKey: CryptoKey): Promise<SCID>;
+  share(cid: CID | SCID, publicKey: JsonWebKey): Promise<SCID>;
   getCIDs(cid: CID | SCID): Promise<CID[]>;
 }

@@ -7,7 +7,7 @@ import {
   createAESGCMKey,
   decryptAES,
   encryptAES,
-  exportRawKey,
+  exportRawECKey,
   generateIV,
   importRawAESGCMKey,
   IV_BYTES,
@@ -27,9 +27,9 @@ export class SecureContext {
 
   private constructor(
     private readonly keyId: string,
-    private readonly publicKey: CryptoKey,
+    private readonly publicKey: JsonWebKey,
     private readonly deterministicCID: boolean,
-    private readonly privateKey?: CryptoKey,
+    private readonly privateKey?: JsonWebKey,
   ) {}
 
   static async create({ publicKey, privateKey, keyId, deterministicCID }: SecureContextConfig): Promise<SecureContext> {
@@ -40,7 +40,7 @@ export class SecureContext {
       throw new Error('No public key');
     }
     // eslint-disable-next-line no-extra-parens
-    const finalKeyId = keyId ?? (await sha256(await exportRawKey(publicKey)));
+    const finalKeyId = keyId ?? (await sha256(await exportRawECKey(publicKey)));
     return new SecureContext(finalKeyId, publicKey, deterministicCID ?? true, privateKey);
   }
 
@@ -134,15 +134,15 @@ export class SecureContext {
       return await resolve(value as MetadataOrComplexObject, tail, options);
     };
 
-    const linkToMetadata = async (link: Link, publicKey: CryptoKey, kid: string, codec: BlockCodec): Promise<Cose> =>
+    const linkToMetadata = async (link: Link, publicKey: JsonWebKey, kid: string, codec: BlockCodec): Promise<Cose> =>
       await createMetadata(link.cid, publicKey, kid, codec);
 
-    const encryptMetadata = async (metadata: Cose, key?: CryptoKey): Promise<CID> =>
+    const encryptMetadata = async (metadata: Cose, key?: JsonWebKey): Promise<CID> =>
       await this.encrypt(encodeCOSE(metadata), ipfs, { format: 'dag-cbor' }, key);
 
     const encryptLinks = async (
-      key: CryptoKey,
-      publicKey: CryptoKey,
+      key: JsonWebKey,
+      publicKey: JsonWebKey,
       kid: string,
       codec: BlockCodec,
       links?: Link[],
@@ -161,7 +161,7 @@ export class SecureContext {
 
     const createMetadata = async (
       contentCID: CID,
-      publicKey: CryptoKey,
+      publicKey: JsonWebKey,
       kid: string,
       codec: BlockCodec,
     ): Promise<Cose> => {
@@ -179,7 +179,7 @@ export class SecureContext {
 
     const repackMetadata = async (
       { contentCID, iv, references }: Metadata,
-      publicKey: CryptoKey,
+      publicKey: JsonWebKey,
       kid: string,
       codec: BlockCodec,
     ): Promise<Cose> => {
@@ -301,7 +301,7 @@ export class SecureContext {
           remainderPath: '',
         };
       },
-      share: async (cid: CID | SCID, publicKey?: CryptoKey, kid?: string): Promise<SCID> => {
+      share: async (cid: CID | SCID, publicKey?: JsonWebKey, kid?: string): Promise<SCID> => {
         const codec = await ipfs.codecs.getCodec('dag-cbor');
 
         if (!publicKey) {
@@ -309,7 +309,7 @@ export class SecureContext {
           kid = kid ?? this.keyId;
         } else {
           // eslint-disable-next-line no-extra-parens
-          kid = kid ?? (await sha256(await exportRawKey(publicKey)));
+          kid = kid ?? (await sha256(await exportRawECKey(publicKey)));
         }
 
         let cose: Cose | null = null;
@@ -347,7 +347,7 @@ export class SecureContext {
     bytes: Uint8Array,
     ipfs: IPFSHTTPClient,
     options: PutOptions & { links?: Link[] } = {},
-    key?: CryptoKey,
+    key?: JsonWebKey,
     iv?: Uint8Array,
   ): Promise<CID> {
     ({ key, iv } = await this.getEncryptionMaterial(bytes, key, iv));
@@ -360,9 +360,9 @@ export class SecureContext {
 
   private async getEncryptionMaterial(
     bytes: Uint8Array,
-    key?: CryptoKey,
+    key?: JsonWebKey,
     iv?: Uint8Array,
-  ): Promise<{ key: CryptoKey; iv: Uint8Array }> {
+  ): Promise<{ key: JsonWebKey; iv: Uint8Array }> {
     if (key && iv) {
       return { key, iv };
     }
@@ -373,7 +373,7 @@ export class SecureContext {
     }
 
     const dataHash = await sha256Raw(bytes);
-    const publicKey = new Uint8Array(await exportRawKey(this.publicKey));
+    const publicKey = new Uint8Array(await exportRawECKey(this.publicKey));
     const encoder = new TextEncoder();
     if (!key) {
       key = await importRawAESGCMKey(
@@ -387,7 +387,7 @@ export class SecureContext {
     return { key, iv };
   }
 
-  private addToContext(cid: CID, key: CryptoKey, iv: Uint8Array, links?: Link[]): void {
+  private addToContext(cid: CID, key: JsonWebKey, iv: Uint8Array, links?: Link[]): void {
     this.context.set(cid.toV1().toString(), { key, iv, links });
     try {
       this.context.set(cid.toV0().toString(), { key, iv, links });

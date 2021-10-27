@@ -10,8 +10,8 @@ export type Link = {
 };
 
 export type SecureContextConfig = {
-  publicKey?: CryptoKey;
-  privateKey?: CryptoKey;
+  publicKey?: JsonWebKey;
+  privateKey?: JsonWebKey;
   keyId?: string;
   deterministicCID?: boolean;
 };
@@ -19,7 +19,7 @@ export type SecureContextConfig = {
 export type ECDHCurve = keyof typeof KEY_CRV;
 
 export interface CIDMetadata {
-  key: CryptoKey;
+  key: JsonWebKey;
   iv: Uint8Array;
   links?: Link[];
 }
@@ -34,19 +34,22 @@ export type Recipient = [CoseAlg, RecipientAddress, Uint8Array, Array<Recipient>
 
 export type RecipientAddress = {
   kid: string;
-  epk?: CryptoKey;
+  epk: CryptoKey;
 };
 
 export type CoseAesGcmParams = {
   iv: Uint8Array;
 };
 
-export type KeyAgreement = {
-  cek: CryptoKey;
+export interface KeyAgreement extends DecryptKeyAgreement {
+  cek: JsonWebKey;
+}
+
+export interface DecryptKeyAgreement {
   encryptedKey: Uint8Array;
   parameters: {
-    epk: CryptoKey;
+    epk: JsonWebKey;
   };
-};
+}
 
 export type MetadataOrComplexObject = Metadata | ComplexObject;
