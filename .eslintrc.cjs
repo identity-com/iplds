@@ -94,7 +94,7 @@ module.exports = {
     radix: 'error',
     'func-style': ['error', 'expression'],
     'max-depth': ['error', 3],
-    'multiline-ternary': ['error', 'never'],
+    'multiline-ternary': ['error', 'always'],
     'no-lonely-if': 'error',
     'no-nested-ternary': 'error',
     'no-unneeded-ternary': 'error',

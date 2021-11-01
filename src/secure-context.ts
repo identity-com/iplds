@@ -9,7 +9,6 @@ import {
   encryptAES,
   exportRawECKey,
   generateIV,
-  importRawAESGCMKey,
   IV_BYTES,
   keyAgreement,
   sha256,
@@ -20,8 +19,12 @@ import { SecureIPFS } from './secure-ipfs';
 import { SCID } from './scid';
 import { CIDMetadata, Cose, Link, MetadataOrComplexObject, SecureContextConfig } from './types';
 import { buildLinkObject, ComplexObject, concat, links } from './utils';
+import { ICryptoProvider } from './ICryptoProvider';
+import { DefaultCryptoProvider } from './DefaultCryptoProvider';
 
 export class SecureContext {
+  private readonly cryptoProvider: ICryptoProvider<CryptoKey, CryptoKey, Uint8Array> = new DefaultCryptoProvider();
+
   // maps CID to CIDMetadata
   private readonly context: Map<string, CIDMetadata> = new Map();
 
@@ -376,7 +379,8 @@ export class SecureContext {
     const publicKey = new Uint8Array(await exportRawECKey(this.publicKey));
     const encoder = new TextEncoder();
     if (!key) {
-      key = await importRawAESGCMKey(
+      // TODO: Ask about double sha256
+      key = await this.cryptoProvider.fromRawCEKKey(
         await sha256Raw(await sha256Raw(concat(encoder.encode('ENCRYPTION_KEY'), publicKey, dataHash))),
       );
     }

@@ -1,10 +1,14 @@
 import { CID } from 'ipfs-http-client';
 import { identity } from 'multiformats/hashes/identity';
-import { exportRawAESGCMKey, importRawAESGCMKey, IV_BYTES } from './crypto';
+import { IV_BYTES } from './crypto';
+import { DefaultCryptoProvider } from './DefaultCryptoProvider';
+import { ICryptoProvider } from './ICryptoProvider';
 import { concat } from './utils';
 
 const KEY_BYTES = 32;
 const CID_BYTES = 36;
+
+const cryptoProvider: ICryptoProvider<CryptoKey, CryptoKey, Uint8Array> = new DefaultCryptoProvider();
 
 export class SCID {
   constructor(public readonly key: JsonWebKey, public readonly iv: Uint8Array, public readonly cid: CID) {}
@@ -25,14 +29,14 @@ export class SCID {
 
     const contentCID = CID.decode(sharedCID.bytes.subarray(cidStart, cidStart + CID_BYTES));
     const rawIV = sharedCID.bytes.subarray(ivStart, ivStart + IV_BYTES);
-    const importedKey = await importRawAESGCMKey(sharedCID.bytes.subarray(keyStart, keyStart + KEY_BYTES));
+    const importedKey = await cryptoProvider.fromRawCEKKey(sharedCID.bytes.subarray(keyStart, keyStart + KEY_BYTES));
 
     return new SCID(importedKey, rawIV, contentCID);
   }
 
   async asCID(): Promise<CID> {
     const digest = await identity.digest(
-      concat(this.cid.bytes, this.iv, new Uint8Array(await exportRawAESGCMKey(this.key))),
+      concat(this.cid.bytes, this.iv, new Uint8Array(await cryptoProvider.toRawCEKKey(this.key))),
     );
 
     return CID.createV1(identity.code, digest);

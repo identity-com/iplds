@@ -5,6 +5,13 @@ import { CRV_ALG } from './cose-js/common';
 
 const crypto = new Crypto();
 
+/*
+  - Use indutny/elliptic for P-256 and K-256 on both browser and node
+  - Use stable-lib for X25519 on both browser and node
+
+  - Use crypto? for CBOR encoding
+*/
+
 export const ecdh_es_a256kw = async (
   alg,
   enc,

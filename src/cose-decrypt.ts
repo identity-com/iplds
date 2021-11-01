@@ -1,7 +1,11 @@
 import { getIV, getRecipientId } from './cose';
 import { untranslateHeaders, untranslateKey } from './cose-js/common';
-import { decryptAES, importRawAESGCMKey, unwrapKey } from './crypto';
+import { decryptAES, unwrapKey } from './crypto';
+import { DefaultCryptoProvider } from './DefaultCryptoProvider';
+import { ICryptoProvider } from './ICryptoProvider';
 import { Cose, Recipient } from './types';
+
+const cryptoProvider: ICryptoProvider<CryptoKey, CryptoKey, Uint8Array> = new DefaultCryptoProvider();
 
 export const decrypt = async function (
   cose: Cose,
@@ -16,7 +20,7 @@ export const decrypt = async function (
     },
   });
 
-  const cek = await importRawAESGCMKey(cekRaw);
+  const cek = await cryptoProvider.fromRawCEKKey(cekRaw);
   const iv = getIV(cose);
 
   return {
