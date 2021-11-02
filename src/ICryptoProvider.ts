@@ -28,4 +28,7 @@ export interface ICryptoProvider<ECDHKey, CEKKey, KWKey> {
   toCEKKey(jwk: JsonWebKey): Promise<CEKKey>;
 
   fromKWKey(kwKey: KWKey): Promise<JsonWebKey>;
+
+  // Higher-level
+  decryptAES(encrypted: Uint8Array, key: JsonWebKey, iv: Uint8Array): Promise<Uint8Array>;
 }

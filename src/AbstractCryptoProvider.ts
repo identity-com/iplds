@@ -46,4 +46,6 @@ export abstract class AbstractCryptoProvider<ECDHKey, CEKKey, KWKey>
   abstract fromCEKKey(cekKey: CEKKey): Promise<JsonWebKey>;
 
   abstract fromKWKey(kwKey: KWKey): Promise<JsonWebKey>;
+
+  abstract decryptAES(encrypted: Uint8Array, key: JsonWebKey, iv: Uint8Array): Promise<Uint8Array>;
 }

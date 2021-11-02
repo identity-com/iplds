@@ -3,39 +3,34 @@ import { BlockCodec, CID } from 'ipfs-http-client';
 import { IPFSHTTPClient } from 'ipfs-http-client/dist/src/types';
 import { decrypt, translate } from './cose-decrypt';
 import { encodeCOSE, encryptToCOSE } from './cose-encrypt';
-import {
-  createAESGCMKey,
-  decryptAES,
-  encryptAES,
-  exportRawECKey,
-  generateIV,
-  IV_BYTES,
-  keyAgreement,
-  sha256,
-  sha256Raw,
-} from './crypto';
+import { createAESGCMKey, IV_BYTES, keyAgreement } from './crypto';
 import { Metadata } from './metadata';
 import { SecureIPFS } from './secure-ipfs';
 import { SCID } from './scid';
 import { CIDMetadata, Cose, Link, MetadataOrComplexObject, SecureContextConfig } from './types';
 import { buildLinkObject, ComplexObject, concat, links } from './utils';
 import { ICryptoProvider } from './ICryptoProvider';
-import { DefaultCryptoProvider } from './DefaultCryptoProvider';
 
-export class SecureContext {
-  private readonly cryptoProvider: ICryptoProvider<CryptoKey, CryptoKey, Uint8Array> = new DefaultCryptoProvider();
+export class SecureContext<ECDHKey, CEKKey, KWKey> {
+  // private readonly cryptoProvider: ICryptoProvider<CryptoKey, CryptoKey, Uint8Array> = new DefaultCryptoProvider();
 
   // maps CID to CIDMetadata
   private readonly context: Map<string, CIDMetadata> = new Map();
 
   private constructor(
-    private readonly keyId: string,
-    private readonly publicKey: JsonWebKey,
+    // private readonly keyId: string,
+    // private readonly publicKey: JsonWebKey,
+    private readonly cryptoProvider: ICryptoProvider<ECDHKey, CEKKey, KWKey>,
     private readonly deterministicCID: boolean,
-    private readonly privateKey?: JsonWebKey,
-  ) {}
+  ) // private readonly privateKey?: JsonWebKey,
+  {}
 
-  static async create({ publicKey, privateKey, keyId, deterministicCID }: SecureContextConfig): Promise<SecureContext> {
+  static create<ECDHKey, CEKKey, KWKey>(
+    { deterministicCID }: SecureContextConfig,
+    cryptoProvider: ICryptoProvider<ECDHKey, CEKKey, KWKey>,
+  ): SecureContext<ECDHKey, CEKKey, KWKey> {
+    /*
+    TODO: Move to CryptoProvider constructor
     if (!privateKey) {
       throw new Error('No private key');
     }
@@ -44,7 +39,8 @@ export class SecureContext {
     }
     // eslint-disable-next-line no-extra-parens
     const finalKeyId = keyId ?? (await sha256(await exportRawECKey(publicKey)));
-    return new SecureContext(finalKeyId, publicKey, deterministicCID ?? true, privateKey);
+    */
+    return new SecureContext(cryptoProvider, deterministicCID ?? true);
   }
 
   public secure(ipfs: IPFSHTTPClient): SecureIPFS {
@@ -59,7 +55,7 @@ export class SecureContext {
       const { content, key, kid } = await decrypt(
         translate(cose),
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.privateKey!,
+        this.cryptoProvider,
       );
       if (kid !== this.keyId) {
         console.warn('Key ID does not match!');
@@ -408,6 +404,6 @@ export class SecureContext {
     const bytes = await ipfs.block.get(cid, options);
     const { key, iv } = meta;
 
-    return decryptAES(bytes, key, iv);
+    return this.cryptoProvider.decryptAES(bytes, key, iv);
   }
 }
