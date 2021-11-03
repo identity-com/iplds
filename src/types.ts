@@ -3,23 +3,18 @@ import { Metadata } from './metadata';
 import { ComplexObject } from './utils';
 import { KEY_CRV } from './cose-js/common';
 
+export type Key = CryptoKey;
+
 export type Link = {
   path: string;
   cid: CID;
   iv: Uint8Array; // IV used to encrypt the CID
 };
 
-export type SecureContextConfig = {
-  publicKey?: CryptoKey;
-  privateKey?: CryptoKey;
-  keyId?: string;
-  deterministicCID?: boolean;
-};
-
 export type ECDHCurve = keyof typeof KEY_CRV;
 
 export interface CIDMetadata {
-  key: CryptoKey;
+  key: Key;
   iv: Uint8Array;
   links?: Link[];
 }
@@ -34,7 +29,7 @@ export type Recipient = [CoseAlg, RecipientAddress, Uint8Array, Array<Recipient>
 
 export type RecipientAddress = {
   kid: string;
-  epk?: CryptoKey;
+  epk?: Key;
 };
 
 export type CoseAesGcmParams = {
@@ -42,11 +37,21 @@ export type CoseAesGcmParams = {
 };
 
 export type KeyAgreement = {
-  cek: CryptoKey;
+  cek: Key;
   encryptedKey: Uint8Array;
   parameters: {
-    epk: CryptoKey;
+    epk: Key;
   };
 };
 
 export type MetadataOrComplexObject = Metadata | ComplexObject;
+
+export type RecipientInfo = {
+  publicKey: Key;
+  kid: string;
+};
+
+export type AESEncryption = {
+  key: Key;
+  iv: Uint8Array;
+};

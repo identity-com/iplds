@@ -1,28 +1,21 @@
 import { encode } from 'cborg';
 import { translateHeaders, translateKey } from './cose-js/common';
-import { encryptAES, exportJWKKey, generateIV } from './crypto';
-import { Cose, KeyAgreement, Recipient } from './types';
+import { encryptAES, exportJWKKey, generateIV, keyAgreement } from './crypto';
+import { Cose, Recipient, RecipientInfo } from './types';
 
 const ALG_ENCRYPTION = 'A256GCM';
 const ALG_KEY_AGREEMENT = 'ECDH-ES-A256KW'; // -31: https://datatracker.ietf.org/doc/html/rfc8152#section-12.5.1
 
-export const encryptRaw = async function (
-  encoded: Uint8Array,
-  recipientKID: string,
-  keyAgreement: KeyAgreement,
-): Promise<Uint8Array> {
-  const cose = await encryptToCOSE(encoded, recipientKID, keyAgreement);
-  return encodeCOSE(cose);
-};
-
 export const encryptToCOSE = async function (
-  encoded: Uint8Array,
-  recipientKID: string,
-  keyAgreement: KeyAgreement,
+  bytes: Uint8Array,
+  key: CryptoKey,
+  recipient: RecipientInfo,
 ): Promise<Cose> {
+  const agreement = await keyAgreement(recipient.publicKey, key);
+
   const iv = generateIV();
 
-  const res = await encryptAES(encoded, keyAgreement.cek, iv);
+  const encrypted = await encryptAES(bytes, agreement.cek, iv);
 
   return [
     {
@@ -31,8 +24,8 @@ export const encryptToCOSE = async function (
     {
       iv,
     },
-    res,
-    await initAESKWRecipients(keyAgreement.encryptedKey, recipientKID, keyAgreement.parameters.epk),
+    encrypted,
+    await initAESKWRecipients(agreement.encryptedKey, recipient.kid, agreement.parameters.epk),
   ];
 };
 
@@ -44,12 +37,6 @@ export const encodeCOSE = (cose: Cose): Uint8Array => {
     throw e;
   }
 };
-
-export const encrypt = async (
-  plainObj: unknown,
-  recipientPublicKID: string,
-  keyMgmt: KeyAgreement,
-): Promise<Uint8Array> => await encryptRaw(encode(plainObj), recipientPublicKID, keyMgmt);
 
 /**
  *

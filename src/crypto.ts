@@ -8,6 +8,7 @@ const ALG_KEY_AGREEMENT = 'ECDH-ES-A256KW'; // -31: https://datatracker.ietf.org
 const SUBTLE_ENCRYPTION_ALG = 'AES-GCM';
 const IV_BITS = 96;
 export const IV_BYTES = IV_BITS / 8;
+export const KEY_BYTES = 32;
 
 const crypto = new Crypto();
 

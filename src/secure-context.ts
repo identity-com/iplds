@@ -1,48 +1,19 @@
 import { GetOptions, GetResult, PutOptions } from 'ipfs-core-types/src/dag';
 import { BlockCodec, CID } from 'ipfs-http-client';
 import { IPFSHTTPClient } from 'ipfs-http-client/dist/src/types';
-import { decrypt, translate } from './cose-decrypt';
-import { encodeCOSE, encryptToCOSE } from './cose-encrypt';
-import {
-  createAESGCMKey,
-  decryptAES,
-  encryptAES,
-  exportRawKey,
-  generateIV,
-  importRawAESGCMKey,
-  IV_BYTES,
-  keyAgreement,
-  sha256,
-  sha256Raw,
-} from './crypto';
+import { encodeCOSE } from './cose-encrypt';
 import { Metadata } from './metadata';
-import { SecureIPFS } from './secure-ipfs';
 import { SCID } from './scid';
-import { CIDMetadata, Cose, Link, MetadataOrComplexObject, SecureContextConfig } from './types';
-import { buildLinkObject, ComplexObject, concat, links } from './utils';
+import { SecureIPFS } from './secure-ipfs';
+import { CIDMetadata, Cose, Key, Link, MetadataOrComplexObject, RecipientInfo } from './types';
+import { buildLinkObject, ComplexObject, links } from './utils';
+import { IWallet } from './wallet';
 
 export class SecureContext {
   // maps CID to CIDMetadata
   private readonly context: Map<string, CIDMetadata> = new Map();
 
-  private constructor(
-    private readonly keyId: string,
-    private readonly publicKey: CryptoKey,
-    private readonly deterministicCID: boolean,
-    private readonly privateKey?: CryptoKey,
-  ) {}
-
-  static async create({ publicKey, privateKey, keyId, deterministicCID }: SecureContextConfig): Promise<SecureContext> {
-    if (!privateKey) {
-      throw new Error('No private key');
-    }
-    if (!publicKey) {
-      throw new Error('No public key');
-    }
-    // eslint-disable-next-line no-extra-parens
-    const finalKeyId = keyId ?? (await sha256(await exportRawKey(publicKey)));
-    return new SecureContext(finalKeyId, publicKey, deterministicCID ?? true, privateKey);
-  }
+  constructor(private readonly wallet: IWallet<Key>, private readonly deterministicCID = true) {}
 
   public secure(ipfs: IPFSHTTPClient): SecureIPFS {
     const ivResolver = (cid: CID): Uint8Array => {
@@ -53,14 +24,7 @@ export class SecureContext {
       return metadata.iv;
     };
     const getMetadata = async (cose: Cose): Promise<Metadata> => {
-      const { content, key, kid } = await decrypt(
-        translate(cose),
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        this.privateKey!,
-      );
-      if (kid !== this.keyId) {
-        console.warn('Key ID does not match!');
-      }
+      const { content, key } = await this.wallet.decryptCOSE(cose);
       const codec = await ipfs.codecs.getCodec('dag-cbor');
       const metadata = Metadata.clone(codec.decode(content));
       this.addToContext(metadata.contentCID, key, metadata.iv, metadata.references);
@@ -134,16 +98,15 @@ export class SecureContext {
       return await resolve(value as MetadataOrComplexObject, tail, options);
     };
 
-    const linkToMetadata = async (link: Link, publicKey: CryptoKey, kid: string, codec: BlockCodec): Promise<Cose> =>
-      await createMetadata(link.cid, publicKey, kid, codec);
+    const linkToMetadata = async (link: Link, recipient: RecipientInfo, codec: BlockCodec): Promise<Cose> =>
+      await createMetadata(link.cid, recipient, codec);
 
-    const encryptMetadata = async (metadata: Cose, key?: CryptoKey): Promise<CID> =>
+    const encryptMetadata = async (metadata: Cose, key?: Key): Promise<CID> =>
       await this.encrypt(encodeCOSE(metadata), ipfs, { format: 'dag-cbor' }, key);
 
     const encryptLinks = async (
-      key: CryptoKey,
-      publicKey: CryptoKey,
-      kid: string,
+      key: Key,
+      recipient: RecipientInfo,
       codec: BlockCodec,
       links?: Link[],
     ): Promise<Link[]> => {
@@ -152,35 +115,28 @@ export class SecureContext {
       }
       const promises: Promise<Cose>[] = [];
       for (const link of links) {
-        promises.push(linkToMetadata(link, publicKey, kid, codec));
+        promises.push(linkToMetadata(link, recipient, codec));
       }
       const metadatas = await Promise.all(promises);
       const cids = await Promise.all(metadatas.map(async (x) => await encryptMetadata(x, key)));
       return buildLinks(links, cids);
     };
 
-    const createMetadata = async (
-      contentCID: CID,
-      publicKey: CryptoKey,
-      kid: string,
-      codec: BlockCodec,
-    ): Promise<Cose> => {
+    const createMetadata = async (contentCID: CID, recipient: RecipientInfo, codec: BlockCodec): Promise<Cose> => {
       const content = this.context.get(contentCID.toString());
       if (!content) {
         throw new Error(`Context does not have info on ${contentCID.toString()}`);
       }
 
-      const encryptedLinks = await encryptLinks(content.key, publicKey, kid, codec, content.links);
+      const encryptedLinks = await encryptLinks(content.key, recipient, codec, content.links);
       const metadata = new Metadata(contentCID, content.iv, encryptedLinks);
 
-      const key = await keyAgreement(publicKey, content.key);
-      return await encryptToCOSE(codec.encode(metadata), kid, key);
+      return await this.wallet.encryptCOSE(codec.encode(metadata), content.key, recipient);
     };
 
     const repackMetadata = async (
       { contentCID, iv, references }: Metadata,
-      publicKey: CryptoKey,
-      kid: string,
+      recipient: RecipientInfo,
       codec: BlockCodec,
     ): Promise<Cose> => {
       const content = this.context.get(contentCID.toString());
@@ -198,7 +154,7 @@ export class SecureContext {
 
       const repackedMetadatas: Promise<Cose>[] = [];
       for (const meta of metadatas) {
-        repackedMetadatas.push(repackMetadata(meta, publicKey, kid, codec));
+        repackedMetadatas.push(repackMetadata(meta, recipient, codec));
       }
 
       const repacked = await Promise.all(repackedMetadatas);
@@ -212,8 +168,7 @@ export class SecureContext {
 
       const metadata = new Metadata(contentCID, iv, links);
 
-      const key = await keyAgreement(publicKey, content.key);
-      return await encryptToCOSE(codec.encode(metadata), kid, key);
+      return await this.wallet.encryptCOSE(codec.encode(metadata), content.key, recipient);
     };
 
     const buildLinks = (links: Link[], cids: CID[]): Link[] =>
@@ -246,6 +201,18 @@ export class SecureContext {
         }
       }
       return result;
+    };
+
+    const createCOSE = async (cid: CID | SCID, publicKey?: Key, kid?: string): Promise<Cose> => {
+      const recipient = await this.getRecipient(publicKey, kid);
+      const codec = await ipfs.codecs.getCodec('dag-cbor');
+
+      if (cid instanceof SCID) {
+        this.addToContext(cid.cid, cid.key, cid.iv);
+        const metadata = await getMetadata(await getItem(cid.cid));
+        return await repackMetadata(metadata, recipient, codec);
+      }
+      return await createMetadata(cid, recipient, codec);
     };
 
     return {
@@ -301,25 +268,8 @@ export class SecureContext {
           remainderPath: '',
         };
       },
-      share: async (cid: CID | SCID, publicKey?: CryptoKey, kid?: string): Promise<SCID> => {
-        const codec = await ipfs.codecs.getCodec('dag-cbor');
-
-        if (!publicKey) {
-          publicKey = this.publicKey;
-          kid = kid ?? this.keyId;
-        } else {
-          // eslint-disable-next-line no-extra-parens
-          kid = kid ?? (await sha256(await exportRawKey(publicKey)));
-        }
-
-        let cose: Cose | null = null;
-        if (cid instanceof SCID) {
-          this.addToContext(cid.cid, cid.key, cid.iv);
-          const metadata = await getMetadata(await getItem(cid.cid));
-          cose = await repackMetadata(metadata, publicKey, kid, codec);
-        } else {
-          cose = await createMetadata(cid, publicKey, kid, codec);
-        }
+      share: async (cid: CID | SCID, publicKey?: Key, kid?: string): Promise<SCID> => {
+        const cose = await createCOSE(cid, publicKey, kid);
         const metadataCID = await encryptMetadata(cose);
         const cidMetadata = this.context.get(metadataCID.toString());
         if (!cidMetadata) {
@@ -343,67 +293,56 @@ export class SecureContext {
     };
   }
 
+  private async getRecipient(publicKey?: Key, kid?: string): Promise<RecipientInfo> {
+    if (!publicKey) {
+      publicKey = this.wallet.publicKey;
+      kid = kid ?? this.wallet.keyId;
+    } else {
+      // eslint-disable-next-line no-extra-parens
+      kid = kid ?? (await this.wallet.getKeyId(publicKey));
+    }
+
+    return {
+      publicKey,
+      kid,
+    };
+  }
+
   private async encrypt(
     bytes: Uint8Array,
     ipfs: IPFSHTTPClient,
     options: PutOptions & { links?: Link[] } = {},
-    key?: CryptoKey,
+    key?: Key,
     iv?: Uint8Array,
   ): Promise<CID> {
-    ({ key, iv } = await this.getEncryptionMaterial(bytes, key, iv));
-    const encrypted = await encryptAES(bytes, key, iv);
+    const {
+      encrypted,
+      key: encryptionKey,
+      iv: encryptionIV,
+    } = await this.wallet.encrypt(bytes, key, iv, this.deterministicCID);
     const { links, ...restOptions } = options;
     const cid = await ipfs.block.put(encrypted, restOptions);
-    this.addToContext(cid, key, iv, links ?? []);
+    this.addToContext(cid, encryptionKey, encryptionIV, links ?? []);
     return cid;
   }
 
-  private async getEncryptionMaterial(
-    bytes: Uint8Array,
-    key?: CryptoKey,
-    iv?: Uint8Array,
-  ): Promise<{ key: CryptoKey; iv: Uint8Array }> {
-    if (key && iv) {
-      return { key, iv };
-    }
-
-    if (!this.deterministicCID) {
-      // eslint-disable-next-line no-extra-parens
-      return { key: key ?? (await createAESGCMKey()), iv: iv ?? generateIV() };
-    }
-
-    const dataHash = await sha256Raw(bytes);
-    const publicKey = new Uint8Array(await exportRawKey(this.publicKey));
-    const encoder = new TextEncoder();
-    if (!key) {
-      key = await importRawAESGCMKey(
-        await sha256Raw(await sha256Raw(concat(encoder.encode('ENCRYPTION_KEY'), publicKey, dataHash))),
-      );
-    }
-    if (!iv) {
-      iv = (await sha256Raw(await sha256Raw(concat(encoder.encode('IV'), publicKey, dataHash)))).subarray(0, IV_BYTES);
-    }
-
-    return { key, iv };
-  }
-
-  private addToContext(cid: CID, key: CryptoKey, iv: Uint8Array, links?: Link[]): void {
+  private addToContext(cid: CID, key: Key, iv: Uint8Array, links?: Link[]): void {
     this.context.set(cid.toV1().toString(), { key, iv, links });
     try {
       this.context.set(cid.toV0().toString(), { key, iv, links });
     } catch {
-      // ignore CID convertion error
+      // ignore CID conversion error
     }
   }
 
   private async decrypt(cid: CID, ipfs: IPFSHTTPClient, options?: GetOptions): Promise<Uint8Array> {
-    const meta = this.context.get(cid.toString());
-    if (!meta) {
+    const metadata = this.context.get(cid.toString());
+    if (!metadata) {
       throw new Error(`Context does not have info on ${cid.toString()}`);
     }
     const bytes = await ipfs.block.get(cid, options);
-    const { key, iv } = meta;
+    const { key, iv } = metadata;
 
-    return decryptAES(bytes, key, iv);
+    return await this.wallet.decrypt(bytes, key, iv);
   }
 }

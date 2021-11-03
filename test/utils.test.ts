@@ -51,7 +51,9 @@ describe('Build links', () => {
 
     const obj = buildLinkObject(links);
 
-    expect(obj.a.b.c.d.e).toStrictEqual(cid1);
-    expect(obj.a.b.x.y.z).toStrictEqual(cid2);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(obj!.a!.b!.c!.d!.e).toStrictEqual(cid1);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(obj!.a!.b!.x!.y!.z).toStrictEqual(cid2);
   });
 });
