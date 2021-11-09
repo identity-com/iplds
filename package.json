@@ -39,6 +39,7 @@
   },
   "dependencies": {
     "@peculiar/webcrypto": "^1.1.7",
+    "@stablelib/x25519": "^1.0.1",
     "cborg": "^1.3.1",
     "ipfs-http-client": "^52.0.3",
     "multiformats": "^9.4.7"

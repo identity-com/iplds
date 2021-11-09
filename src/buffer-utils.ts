@@ -33,9 +33,9 @@ export const concatKdf = async (
     buf.set(secret, 4);
     buf.set(value, 4 + secret.length);
     if (res.length === 0) {
-      res = await digest('sha256', buf);
+      res = await digest(`sha${bits}`, buf);
     } else {
-      res = concat(res, await digest('sha256', buf));
+      res = concat(res, await digest(`sha${bits}`, buf));
     }
   }
   return res.slice(0, bits >> 3);

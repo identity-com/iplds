@@ -9,7 +9,7 @@ const ALG_KEY_AGREEMENT = 'ECDH-ES-A256KW'; // -31: https://datatracker.ietf.org
 
 export const decrypt = async function (
   cose: Cose,
-  recipientPrivate: CryptoKey,
+  recipientPrivate: CryptoKey | Uint8Array,
 ): Promise<{ content: Uint8Array; key: CryptoKey; kid: string }> {
   const recipient = cloneRecipient(cose[3][0]);
 
@@ -17,7 +17,14 @@ export const decrypt = async function (
     recipient[1].epk = await fromCOSEKey(cose[3][0][1].epk);
   }
 
-  const cekRaw = await decryptKeyManagement(ALG_KEY_AGREEMENT, recipientPrivate, recipient);
+  const cekRaw = await decryptKeyManagement(
+    ALG_KEY_AGREEMENT, 
+    recipientPrivate instanceof CryptoKey
+      ? (<EcKeyAlgorithm>recipientPrivate.algorithm).namedCurve
+      : 'X25519',
+    recipientPrivate, 
+    recipient
+  );
 
   const cek = await importRawAESGCMKey(cekRaw);
   const iv = getIV(cose);

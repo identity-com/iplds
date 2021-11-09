@@ -2,12 +2,14 @@ import { encoder, uint32be, lengthAndInput, concatKdf } from './buffer-utils';
 import { Crypto } from '@peculiar/webcrypto';
 import { concat } from './utils';
 import { CRV_ALG } from './cose-js/common';
+import { generateKeyPair, sharedKey } from '@stablelib/x25519';
 
 const crypto = new Crypto();
 
-export const ecdh_es_a256kw = async (
+export const encryptKeyManagement = async (
   alg,
   enc,
+  namedCurve,
   recipientPublic,
   providedCek,
   providedParameters = {}
@@ -16,7 +18,7 @@ export const ecdh_es_a256kw = async (
   let parameters = {};
   let cek;
 
-  if (!ecdhAllowed(recipientPublic.algorithm.namedCurve)) {
+  if (!ecdhAllowed(namedCurve)) {
     throw new Error(
       'ECDH-ES with the provided key is not allowed or not supported by your javascript runtime'
     );
@@ -24,9 +26,7 @@ export const ecdh_es_a256kw = async (
   const { apu, apv } = providedParameters;
   let { epk: ephemeralKeyPair } = providedParameters;
   ephemeralKeyPair ||
-    (ephemeralKeyPair = await generateEpk(
-      recipientPublic.algorithm.namedCurve
-    ));
+    (ephemeralKeyPair = await generateEpk(namedCurve));
   // const { x, y, crv, kty } = await fromKeyLike(ephemeralKey);
   const sharedSecret = await deriveKey(
     recipientPublic,
@@ -50,11 +50,12 @@ export const ecdh_es_a256kw = async (
 
 export const decryptKeyManagement = async (
   alg,
+  namedCurve,
   recipientPrivate,
   ecdhRecipient
 ) => {
   // Direct Key Agreement
-  if (!ecdhAllowed(recipientPrivate.algorithm.namedCurve)) {
+  if (!ecdhAllowed(namedCurve)) {
     throw 'ECDH-ES with the provided key is not allowed or not supported by your javascript runtime';
   }
 
@@ -82,6 +83,7 @@ export const decryptKeyManagement = async (
 export const deriveKey = async (
   publicKey,
   privateKey,
+  namedCurve,
   algorithm,
   keyLength,
   apu = new Uint8Array(0),
@@ -93,30 +95,39 @@ export const deriveKey = async (
     lengthAndInput(apv),
     uint32be(keyLength)
   );
-  if (!privateKey.usages.includes('deriveBits')) {
-    throw new TypeError(
-      'ECDH-ES private key "usages" must include "deriveBits"'
+  
+  let sharedSecret;
+
+  if (namedCurve == 'X25519') {
+    sharedSecret = sharedKey(privateKey, publicKey);
+  } else {
+    if (!privateKey.usages.includes('deriveBits')) {
+      throw new TypeError(
+        'ECDH-ES private key "usages" must include "deriveBits"'
+      );
+    }
+    sharedSecret = new Uint8Array(
+      await crypto.subtle.deriveBits(
+        {
+          name: CRV_ALG[namedCurve],
+          public: publicKey,
+        },
+        privateKey,
+        Math.ceil(parseInt(namedCurve.substr(-3), 10) / 8) <<
+          3
+      )
     );
   }
-  const sharedSecret = new Uint8Array(
-    await crypto.subtle.deriveBits(
-      {
-        name: CRV_ALG[privateKey.algorithm.namedCurve],
-        public: publicKey,
-      },
-      privateKey,
-      Math.ceil(parseInt(privateKey.algorithm.namedCurve.substr(-3), 10) / 8) <<
-        3
-    )
-  );
+
   return concatKdf(digest, sharedSecret, keyLength, value);
 };
 
-// TODO: validate curve?
-const generateEpk = async (crv) =>
-  await crypto.subtle.generateKey({ name: CRV_ALG[crv], namedCurve: crv }, true, [
-    'deriveBits',
-  ]);
+export const generateEpk = async (crv) =>
+  namedCurve == 'X25519'
+    ? Promise.resolve(generateKeyPair())
+    : await crypto.subtle.generateKey({ name: CRV_ALG[crv], namedCurve: crv }, true, [
+        'deriveBits',
+      ]);
 
 const ecdhAllowed = (crv) => ['P-256', 'P-384', 'P-521', 'K-256', 'X25519'].includes(crv);
 

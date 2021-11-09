@@ -1,6 +1,6 @@
 import { Crypto } from '@peculiar/webcrypto';
 import { CRV_ALG } from './cose-js/common';
-import { ecdh_es_a256kw } from './ecdh-es-akw';
+import { encryptKeyManagement } from './ecdh-es-akw';
 import { ECDHCurve, KeyAgreement } from './types';
 
 const ALG_ENCRYPTION = 'A256GCM';
@@ -24,9 +24,18 @@ export const createECKey = async (namedCurve: ECDHCurve = 'P-256'): Promise<Cryp
 export const createAESGCMKey = async (): Promise<CryptoKey> =>
   await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
 
-export const keyAgreement = async (recipientPublic: CryptoKey, cek: CryptoKey): Promise<KeyAgreement> =>
+export const keyAgreement = async (recipientPublic: CryptoKey | Uint8Array, cek: CryptoKey): Promise<KeyAgreement> =>
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-  await ecdh_es_a256kw(ALG_KEY_AGREEMENT, ALG_ENCRYPTION, recipientPublic, cek, {});
+  await encryptKeyManagement(
+    ALG_KEY_AGREEMENT,
+    ALG_ENCRYPTION,
+    recipientPublic instanceof CryptoKey
+      ? (<EcKeyAlgorithm>recipientPublic.algorithm).namedCurve
+      : 'X25519',
+    recipientPublic,
+    cek,
+    {},
+  );
 
 export const sha256 = async (data: Uint8Array): Promise<string> => {
   return Array.from(await sha256Raw(data))
@@ -55,6 +64,8 @@ export const importJWKKey = async (
   params: EcKeyImportParams,
   usage: KeyUsage[] = ['deriveBits'],
 ): Promise<CryptoKey> => await crypto.subtle.importKey('jwk', jwk, params, true, usage);
+
+export const jwkKeyToRaw = (jwk: JsonWebKey): Uint8Array => Uint8Array.from(Buffer.from(jwk.x!, 'base64url'));
 
 export const encryptAES = async (data: Uint8Array, key: CryptoKey, iv: Uint8Array): Promise<Uint8Array> => {
   const params: AesGcmParams = {
