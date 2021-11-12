@@ -3,21 +3,18 @@
 import { randomBytes } from '@stablelib/random';
 import * as fs from 'fs';
 import { BlockCodec, create, IPFSHTTPClient } from 'ipfs-http-client';
+import { generateKeyPair } from '../src/jwk';
 import { decrypt, translate } from '../src/cose-decrypt';
 import { createECKey, decryptAES } from '../src/crypto';
 import { Metadata } from '../src/metadata';
 import { SCID } from '../src/scid';
 import { SecureContext } from '../src/secure-context';
 import { SecureIPFS } from '../src/secure-ipfs';
-import { Cose, ECKey, Key } from '../src/types';
+import { Cose, ECDHCurve, ECKey, Key } from '../src/types';
 import { IWallet, Wallet } from '../src/wallet/wallet';
 import { SAMPLE_JSON } from './fixtures/data-fixture';
 
-describe.each([
-  // [async () => await createECKey('P-256'), async () => await createECKey('P-256')],
-  // [async () => await createECKey('K-256'), async () => await createECKey('K-256')],
-  [async () => await createECKey('X25519'), async () => await createECKey('X25519')],
-])('Secure Context', (aliceGenerator: () => Promise<ECKey>, bobGenerator: () => Promise<ECKey>) => {
+describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: string) => {
   let aliceKeyPair: ECKey;
   let alice: IWallet<ECKey, Key>;
   let bob: IWallet<ECKey, Key>;
@@ -30,11 +27,11 @@ describe.each([
     ipfs = create({ url: 'http://localhost:5001/api/v0' });
   });
 
-  beforeEach(async () => {
-    aliceKeyPair = await aliceGenerator();
-    alice = Wallet.from({ privateKey: aliceKeyPair, publicKey: aliceKeyPair });
-    const bobJWK = await bobGenerator();
-    bob = Wallet.from({ privateKey: bobJWK, publicKey: bobJWK });
+  beforeEach(() => {
+    aliceKeyPair = generateKeyPair(curve as ECDHCurve);
+    alice = Wallet.from(aliceKeyPair);
+    const bobJWK = generateKeyPair(curve as ECDHCurve);
+    bob = Wallet.from(bobJWK);
     dededuplicationSecret = randomBytes(16);
     ctx = new SecureContext(alice, dededuplicationSecret);
     secure = ctx.secure(ipfs);
@@ -485,7 +482,7 @@ describe.each([
     const data = { content: 'secret information' };
     // Here is Alice, who has some secret content stored on IPFS.
     const alice = await createECKey();
-    const aliceContext = new SecureContext(Wallet.from({ publicKey: alice, privateKey: alice }));
+    const aliceContext = new SecureContext(Wallet.from(alice));
     const aliceStore = aliceContext.secure(ipfs);
     const cid = await aliceStore.put(data);
 
@@ -497,7 +494,7 @@ describe.each([
     const scidStr = await scid.asString();
     // Later Bob can use his private key
     // and the CID received from Alice to retrieve the content.
-    const bobContext = new SecureContext(Wallet.from({ privateKey: bob, publicKey: bob }));
+    const bobContext = new SecureContext(Wallet.from(bob));
     const bobStore = bobContext.secure(ipfs);
 
     const { value } = await bobStore.get(SCID.from(scidStr));
@@ -526,7 +523,7 @@ describe.each([
       const cid = await secure.put({ text: 'secure' });
       const scid = await secure.share(cid, bob.publicKey);
 
-      const bobContext = new SecureContext(Wallet.from(bob));
+      const bobContext = new SecureContext(bob);
       const bobStore = bobContext.secure(ipfs);
 
       const cids = await bobStore.getCIDs(scid);
@@ -541,7 +538,7 @@ describe.each([
 
       const scid = await secure.share(cid2, bob.publicKey);
 
-      const bobContext = new SecureContext(Wallet.from(bob));
+      const bobContext = new SecureContext(bob);
       const bobStore = bobContext.secure(ipfs);
 
       const cids = await bobStore.getCIDs(scid);

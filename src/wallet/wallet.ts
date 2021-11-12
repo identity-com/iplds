@@ -1,6 +1,7 @@
 import { decrypt, translate } from '../cose-decrypt';
 import { encryptToCOSE } from '../cose-encrypt';
 import { createAESGCMKey, decryptAES, encryptAES, generateIV, IV_BYTES, KEY_BYTES, sha256Raw } from '../crypto';
+import { sanitizePublicKey } from '../jwk';
 import { Cose, ECKey, Key } from '../types';
 import { concat } from '../utils';
 
@@ -20,17 +21,15 @@ export interface IWallet<ECKey = unknown, AESKey = unknown> {
 }
 
 export class Wallet implements IWallet<ECKey, Key> {
-  private constructor(public readonly publicKey: ECKey, private readonly privateKey: ECKey) {}
+  public readonly publicKey: ECKey;
+  private readonly key: ECKey;
+  private constructor(public readonly jwk: ECKey) {
+    this.key = jwk;
+    this.publicKey = sanitizePublicKey(jwk);
+  }
 
-  static from({ publicKey, privateKey }: { publicKey?: ECKey; privateKey?: ECKey }): Wallet {
-    if (!privateKey) {
-      throw new Error('No private key');
-    }
-    if (!publicKey) {
-      throw new Error('No public key');
-    }
-
-    return new Wallet(publicKey, privateKey);
+  static from(jwk: ECKey): Wallet {
+    return new Wallet(jwk);
   }
 
   static fromRaw(bytes: Uint8Array): { key: Key; iv: Uint8Array } {
@@ -52,7 +51,7 @@ export class Wallet implements IWallet<ECKey, Key> {
     const { content, key, kid } = await decrypt(
       translate(cose),
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      this.privateKey,
+      this.key,
     );
     if (kid && kid !== this.publicKey.kid) {
       console.warn('Key ID does not match!');

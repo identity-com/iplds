@@ -1502,6 +1502,11 @@
   resolved "https://registry.yarnpkg.com/@stablelib/bytes/-/bytes-1.0.1.tgz#0f4aa7b03df3080b878c7dea927d01f42d6a20d8"
   integrity sha512-Kre4Y4kdwuqL8BR2E9hV/R5sOrUj6NanZaZis0V6lX5yzqC3hBuVSDXUIBqQv/sCpmuWRiHLwqiT1pqqjuBXoQ==
 
+"@stablelib/hex@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@stablelib/hex/-/hex-1.0.1.tgz#564bd46d896941c93131d1e1869eabc17cf9bab5"
+  integrity sha512-PQOEChVBjhYGgAD+ehO2ow1gSj1slre3jW4oMD4kV8VrhYhzmtsQDWDZej3BQO8qkVezdczDvISxVSF24PuYNA==
+
 "@stablelib/int@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@stablelib/int/-/int-1.0.1.tgz#75928cc25d59d73d75ae361f02128588c15fd008"

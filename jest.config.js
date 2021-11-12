@@ -1,6 +1,6 @@
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 const config = {
-  verbose: true,
+  testTimeout: 60000,
   preset: 'ts-jest',
   testEnvironment: 'node',
   transform: {

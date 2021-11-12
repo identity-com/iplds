@@ -1,5 +1,5 @@
 import { sharedKey } from '@stablelib/x25519';
-import { jwkPublicKeyToRaw } from '../src/crypto';
+import { jwkPublicToRaw } from '../src/jwk';
 
 describe('ECDH with X25519', () => {
   // (https://datatracker.ietf.org/doc/html/rfc8037#appendix-A.6)
@@ -17,7 +17,7 @@ describe('ECDH with X25519', () => {
     const ecdhEtalonResult =
       '4a 5d 9d 5b a4 ce 2d e1 72 8e 3b f4 80 35 0f 25 e0 7e 21 c9 47 d1 9e 33 76 f0 9b 3c 1e 16 17 42';
 
-    const receiverPublicRaw = jwkPublicKeyToRaw(receiverPublicJWK);
+    const receiverPublicRaw = jwkPublicToRaw(receiverPublicJWK);
     const epkSecretRaw = Uint8Array.from(Buffer.from(cleanSpaces(epkSecretHex), 'hex'));
 
     const derivedShared = sharedKey(epkSecretRaw, receiverPublicRaw);

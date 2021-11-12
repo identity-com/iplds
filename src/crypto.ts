@@ -1,10 +1,13 @@
 import { Crypto } from '@peculiar/webcrypto';
-import { URLSafeCoder } from '@stablelib/base64';
 import { randomBytes } from '@stablelib/random';
-import { generateKeyPair as x25519KeyPair, scalarMultBase, sharedKey } from '@stablelib/x25519';
+import { sharedKey } from '@stablelib/x25519';
+import { decode, encode } from '@stablelib/hex';
 import { concatKdf, lengthAndInput, uint32be } from './buffer-utils';
-import { ECDHCurve, ECKey, JWK, Key, KeyAgreement, Recipient } from './types';
+import { generateKeyPair, jwkPrivateToRaw, jwkPublicToRaw, sanitizePublicKey } from './jwk';
+import { ECDHCurve, ECKey, Key, KeyAgreement, Recipient } from './types';
 import { concat } from './utils';
+import { ec as EC } from 'elliptic';
+import { URLSafeCoder } from '@stablelib/base64';
 
 const IV_BITS = 96;
 export const IV_BYTES = IV_BITS / 8;
@@ -14,8 +17,8 @@ export const ALG_ENCRYPTION = 'A256GCM';
 export const ALG_KEY_AGREEMENT = 'ECDH-ES+A256KW'; // -31: https://datatracker.ietf.org/doc/html/rfc8152#section-12.5.1
 
 const crypto = new Crypto();
-const base64 = new URLSafeCoder();
 const encoder = new TextEncoder();
+const base64 = new URLSafeCoder();
 
 export const createECKey = async (crv: ECDHCurve = 'X25519'): Promise<ECKey> => {
   return await Promise.resolve(generateKeyPair(crv));
@@ -53,7 +56,7 @@ export const decryptAES = async (encrypted: Uint8Array, key: Key, iv: Uint8Array
   return new Uint8Array(await crypto.subtle.decrypt(params, encryptionKey, encrypted));
 };
 
-export const exportJWKKey = async (key: CryptoKey): Promise<ECKey> => await crypto.subtle.exportKey('jwk', key);
+// export const exportJWKKey = async (key: CryptoKey): Promise<ECKey> => await crypto.subtle.exportKey('jwk', key);
 
 export const exportRawKey = async (key: CryptoKey): Promise<Uint8Array> =>
   new Uint8Array(await crypto.subtle.exportKey('raw', key));
@@ -75,70 +78,6 @@ export const importJWKKey = async (
 export const createAESGCMKey = async (): Promise<Uint8Array> =>
   exportRawKey(await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']));
 
-export const jwkPublicKeyToRaw = (jwk: ECKey): Uint8Array => {
-  if (jwk.kty !== 'EC' && jwk.kty !== 'OKP') {
-    throw new Error('Invalid key type');
-  }
-  if (!jwk.x) {
-    throw new Error('Public key data is missing in JWK key');
-  }
-
-  return base64.decode(jwk.x);
-};
-
-export const jwkPrivateKeyToRaw = (jwk: ECKey): Uint8Array => {
-  if (jwk.kty !== 'EC' && jwk.kty !== 'OKP') {
-    throw new Error('Invalid key type: ' + (jwk.kty ?? ''));
-  }
-  if (!jwk.d) {
-    throw new Error('Private key information is missing in JWK key!');
-  }
-
-  return base64.decode(jwk.d);
-};
-
-export const rawToJwkPublicKey = (publicKey: Uint8Array, curve: ECDHCurve): ECKey => {
-  return {
-    crv: curve,
-    kty: curve === 'X25519' ? 'OKP' : 'EC',
-    x: base64.encode(publicKey),
-  };
-};
-
-export const rawToJwkPrivateKey = (privateKey: Uint8Array, curve: ECDHCurve): ECKey => {
-  let publicKey = null;
-  if (curve === 'X25519') {
-    publicKey = scalarMultBase(privateKey);
-  }
-  return {
-    crv: curve,
-    kty: curve === 'X25519' ? 'OKP' : 'EC',
-    x: publicKey ? base64.encode(publicKey) : undefined,
-    d: base64.encode(privateKey),
-    use: 'enc',
-  };
-};
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars-experimental
-const CURVE_MAP: Record<ECDHCurve, string> = {
-  'K-256': 'secp256k1',
-  'P-256': 'p256',
-  X25519: 'curve25519',
-};
-
-export const generateKeyPair = (curve: ECDHCurve = 'X25519'): ECKey => {
-  const keyPair = x25519KeyPair();
-  return rawToJwkPrivateKey(keyPair.secretKey, curve);
-  // if (curve === 'X25519') {
-  // }
-  // const ec = new EC(CURVE_MAP[curve]);
-  // const keyPair = ec.genKeyPair();
-
-  // return rawToJwkPrivateKey(keyPair.getPrivate('hex'), curve);
-};
-
-export const onlyPublicKey = ({ d, ...jwk }: JWK): JWK => jwk;
-
 export const deriveKey = async (
   publicKey: ECKey,
   privateKey: ECKey,
@@ -154,8 +93,36 @@ export const deriveKey = async (
     uint32be(keyLength),
   );
 
-  const sharedSecret = sharedKey(jwkPrivateKeyToRaw(privateKey), jwkPublicKeyToRaw(publicKey));
+  const sharedSecret = getSharedSecret(publicKey, privateKey);
+
   return await concatKdf(digest, sharedSecret, keyLength, value);
+};
+
+const CURVE_MAP: Record<ECDHCurve, string> = {
+  'K-256': 'secp256k1',
+  'P-256': 'p256',
+  X25519: 'X25519',
+};
+
+const getSharedSecret = (publicKey: ECKey, privateKey: ECKey): Uint8Array => {
+  if (publicKey.crv !== privateKey.crv) {
+    throw new Error('Incompatible keys');
+  }
+  if (publicKey.crv === 'X25519') {
+    return sharedKey(jwkPrivateToRaw(privateKey), jwkPublicToRaw(publicKey, false, true));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+  const ec = new EC(CURVE_MAP[publicKey.crv! as ECDHCurve] || 'K-256');
+
+  const alice = ec.keyFromPublic({
+    x: encode(base64.decode(publicKey.x!)),
+    y: encode(base64.decode(publicKey.y!)),
+  });
+  const bob = ec.keyFromPrivate(jwkPrivateToRaw(privateKey));
+  const shared = bob.derive(alice.getPublic()).toString(16).padStart(64, '0');
+
+  return decode(shared);
 };
 
 const digest = async (algorithm: string, data: BufferSource): Promise<Uint8Array> => {
@@ -163,7 +130,7 @@ const digest = async (algorithm: string, data: BufferSource): Promise<Uint8Array
   return new Uint8Array(await crypto.subtle.digest(subtleDigest, data));
 };
 
-const ecdhAllowed = (crv: string): boolean => ['P-256', 'P-384', 'P-521', 'K-256', 'X25519'].includes(crv);
+const ecdhAllowed = (crv: string): boolean => ['P-256', 'K-256', 'X25519'].includes(crv);
 
 export const encryptKeyManagement = async (
   alg: string,
@@ -187,7 +154,7 @@ export const encryptKeyManagement = async (
 
   const encryptedKey = await wrap(sharedSecret, cek);
 
-  return { cek: await exportRawKey(cek), encryptedKey, parameters: { epk: onlyPublicKey(ephemeralKey) } };
+  return { cek: await exportRawKey(cek), encryptedKey, parameters: { epk: sanitizePublicKey(ephemeralKey) } };
 };
 
 export const decryptKeyManagement = async (
