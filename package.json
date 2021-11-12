@@ -39,7 +39,10 @@
   },
   "dependencies": {
     "@peculiar/webcrypto": "^1.2.2",
+    "@stablelib/aes": "^1.0.1",
+    "@stablelib/aes-kw": "^1.0.1",
     "@stablelib/base64": "^1.0.1",
+    "@stablelib/gcm": "^1.0.1",
     "@stablelib/hex": "^1.0.1",
     "@stablelib/keyagreement": "^1.0.1",
     "@stablelib/random": "^1.0.1",
