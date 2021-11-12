@@ -1,9 +1,14 @@
 import { CID } from 'ipfs-http-client';
+import { KEY_CRV } from './cose-js/common';
 import { Metadata } from './metadata';
 import { ComplexObject } from './utils';
-import { KEY_CRV } from './cose-js/common';
 
-export type Key = CryptoKey;
+export type Key = Uint8Array;
+export type ECKey = JWK;
+
+export interface JWK extends JsonWebKey {
+  kid?: string;
+}
 
 export type Link = {
   path: string;
@@ -19,37 +24,35 @@ export interface CIDMetadata {
   links?: Link[];
 }
 
-export type CoseAlg = {
+export type CoseProtected = {
   alg: string;
 };
 
-export type Cose = [CoseAlg, CoseAesGcmParams, Uint8Array, Array<Recipient>];
+export type CipherText = Uint8Array;
+export type Recipients = Array<Recipient>;
 
-export type Recipient = [CoseAlg, RecipientAddress, Uint8Array, Array<Recipient>];
+export type Cose = [CoseProtected, CoseUnprotected, CipherText, Recipients];
+
+export type Recipient = [CoseProtected, RecipientAddress, CipherText, Recipients];
 
 export type RecipientAddress = {
   kid: string;
-  epk?: Key;
+  epk: ECKey;
 };
 
-export type CoseAesGcmParams = {
+export type CoseUnprotected = {
   iv: Uint8Array;
 };
 
 export type KeyAgreement = {
   cek: Key;
-  encryptedKey: Uint8Array;
+  encryptedKey: Key;
   parameters: {
-    epk: Key;
+    epk: ECKey;
   };
 };
 
 export type MetadataOrComplexObject = Metadata | ComplexObject;
-
-export type RecipientInfo = {
-  publicKey: Key;
-  kid: string;
-};
 
 export type AESEncryption = {
   key: Key;

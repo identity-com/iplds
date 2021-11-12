@@ -1,22 +1,14 @@
 import { encode } from 'cborg';
 import { translateHeaders, translateKey } from './cose-js/common';
-import { encryptAES, exportJWKKey, generateIV, keyAgreement } from './crypto';
-import { Cose, Recipient, RecipientInfo } from './types';
+import { ALG_ENCRYPTION, ALG_KEY_AGREEMENT, encryptAES, generateIV, importRawAESGCMKey, keyAgreement } from './crypto';
+import { Cose, ECKey, Key, Recipient, Recipients } from './types';
 
-const ALG_ENCRYPTION = 'A256GCM';
-const ALG_KEY_AGREEMENT = 'ECDH-ES-A256KW'; // -31: https://datatracker.ietf.org/doc/html/rfc8152#section-12.5.1
-
-export const encryptToCOSE = async function (
-  bytes: Uint8Array,
-  key: CryptoKey,
-  recipient: RecipientInfo,
-): Promise<Cose> {
-  const agreement = await keyAgreement(recipient.publicKey, key);
+export const encryptToCOSE = async function (bytes: Uint8Array, key: Key, recipient: ECKey): Promise<Cose> {
+  const encryptionKey = await importRawAESGCMKey(key);
+  const agreement = await keyAgreement(recipient, encryptionKey);
 
   const iv = generateIV();
-
-  const encrypted = await encryptAES(bytes, agreement.cek, iv);
-
+  const encrypted = await encryptAES(bytes, key, iv);
   return [
     {
       alg: ALG_ENCRYPTION,
@@ -25,7 +17,7 @@ export const encryptToCOSE = async function (
       iv,
     },
     encrypted,
-    await initAESKWRecipients(agreement.encryptedKey, recipient.kid, agreement.parameters.epk),
+    initAESKWRecipients(agreement.encryptedKey, recipient.kid ?? '', agreement.parameters.epk),
   ];
 };
 
@@ -45,20 +37,20 @@ export const encodeCOSE = (cose: Cose): Uint8Array => {
  * @param epk - ephemeral public key
  * @returns ECDH-AKW Recipient layer of the COSE structure
  */
-const initAESKWRecipients = async (encryptedKey: Uint8Array, kid: string, epk: CryptoKey): Promise<Recipient[]> => {
-  const single: Recipient = [
+const initAESKWRecipients = (encryptedKey: Key, kid: string, epk: ECKey): Recipients => {
+  const recipient: Recipient = [
     {
       alg: ALG_KEY_AGREEMENT,
     },
     {
       kid: kid,
-      epk: toCOSEKey(await exportJWKKey(epk)),
+      epk: toCOSEKey(epk),
     },
     encryptedKey,
     [],
   ];
 
-  return [single];
+  return [recipient] as Recipients;
 };
 
 const translate = (cose: Cose): Array<unknown> => [
@@ -75,11 +67,14 @@ const translateRecipient = (recipient: Recipient): Array<unknown> => [
   recipient[3].map(translateRecipient),
 ];
 
-const toCOSEKey = (key: JsonWebKey): CryptoKey => {
-  delete key.key_ops;
-  delete key.ext;
+const toCOSEKey = (key: ECKey): ECKey => {
+  const coseKey = { ...key };
 
-  key.kty = key.kty === 'EC' ? 'EC2' : key.kty;
+  delete coseKey.key_ops;
+  delete coseKey.ext;
+  delete coseKey.use;
 
-  return Object.fromEntries(translateKey(key)) as CryptoKey;
+  coseKey.kty = coseKey.kty === 'EC' ? 'EC2' : coseKey.kty;
+
+  return Object.fromEntries(translateKey(coseKey)) as ECKey;
 };

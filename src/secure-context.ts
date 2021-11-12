@@ -1,19 +1,27 @@
 import { GetOptions, GetResult, PutOptions } from 'ipfs-core-types/src/dag';
-import { BlockCodec, CID } from 'ipfs-http-client';
-import { IPFSHTTPClient } from 'ipfs-http-client/dist/src/types';
+import { BlockCodec, CID, IPFSHTTPClient } from 'ipfs-http-client';
 import { encodeCOSE } from './cose-encrypt';
 import { Metadata } from './metadata';
 import { SCID } from './scid';
 import { SecureIPFS } from './secure-ipfs';
-import { CIDMetadata, Cose, Key, Link, MetadataOrComplexObject, RecipientInfo } from './types';
+import { CIDMetadata, Cose, ECKey, Key, Link, MetadataOrComplexObject } from './types';
 import { buildLinkObject, ComplexObject, links } from './utils';
 import { IWallet } from './wallet';
 
 export class SecureContext {
   // maps CID to CIDMetadata
   private readonly context: Map<string, CIDMetadata> = new Map();
+  private readonly deduplicationSecret?: Uint8Array;
 
-  constructor(private readonly wallet: IWallet<Key>, private readonly deterministicCID = true) {}
+  constructor(private readonly wallet: IWallet<ECKey, Key>, deduplicationSecret?: Uint8Array) {
+    if (deduplicationSecret) {
+      if (deduplicationSecret.length < 16) {
+        throw new Error('Too short deduplication secret. Deduplication secret must be at least 16 bytes');
+      }
+
+      this.deduplicationSecret = deduplicationSecret.slice(0); // copy
+    }
+  }
 
   public secure(ipfs: IPFSHTTPClient): SecureIPFS {
     const ivResolver = (cid: CID): Uint8Array => {
@@ -24,12 +32,12 @@ export class SecureContext {
       return metadata.iv;
     };
     const getMetadata = async (cose: Cose): Promise<Metadata> => {
-      const { content, key } = await this.wallet.decryptCOSE(cose);
+      const { content, key: cek } = await this.wallet.decryptCOSE(cose);
       const codec = await ipfs.codecs.getCodec('dag-cbor');
       const metadata = Metadata.clone(codec.decode(content));
-      this.addToContext(metadata.contentCID, key, metadata.iv, metadata.references);
+      this.addToContext(metadata.contentCID, cek, metadata.iv, metadata.references);
       for (const link of metadata.references) {
-        this.addToContext(link.cid, key, link.iv);
+        this.addToContext(link.cid, cek, link.iv);
       }
       return metadata;
     };
@@ -98,15 +106,15 @@ export class SecureContext {
       return await resolve(value as MetadataOrComplexObject, tail, options);
     };
 
-    const linkToMetadata = async (link: Link, recipient: RecipientInfo, codec: BlockCodec): Promise<Cose> =>
-      await createMetadata(link.cid, recipient, codec);
+    const linkToMetadata = async (link: Link, recipientPublicKey: ECKey, codec: BlockCodec): Promise<Cose> =>
+      await createMetadata(link.cid, recipientPublicKey, codec);
 
     const encryptMetadata = async (metadata: Cose, key?: Key): Promise<CID> =>
       await this.encrypt(encodeCOSE(metadata), ipfs, { format: 'dag-cbor' }, key);
 
     const encryptLinks = async (
       key: Key,
-      recipient: RecipientInfo,
+      recipientPublicKey: ECKey,
       codec: BlockCodec,
       links?: Link[],
     ): Promise<Link[]> => {
@@ -115,28 +123,28 @@ export class SecureContext {
       }
       const promises: Promise<Cose>[] = [];
       for (const link of links) {
-        promises.push(linkToMetadata(link, recipient, codec));
+        promises.push(linkToMetadata(link, recipientPublicKey, codec));
       }
       const metadatas = await Promise.all(promises);
       const cids = await Promise.all(metadatas.map(async (x) => await encryptMetadata(x, key)));
       return buildLinks(links, cids);
     };
 
-    const createMetadata = async (contentCID: CID, recipient: RecipientInfo, codec: BlockCodec): Promise<Cose> => {
+    const createMetadata = async (contentCID: CID, recipientPublicKey: ECKey, codec: BlockCodec): Promise<Cose> => {
       const content = this.context.get(contentCID.toString());
       if (!content) {
         throw new Error(`Context does not have info on ${contentCID.toString()}`);
       }
 
-      const encryptedLinks = await encryptLinks(content.key, recipient, codec, content.links);
+      const encryptedLinks = await encryptLinks(content.key, recipientPublicKey, codec, content.links);
       const metadata = new Metadata(contentCID, content.iv, encryptedLinks);
 
-      return await this.wallet.encryptCOSE(codec.encode(metadata), content.key, recipient);
+      return await this.wallet.encryptCOSE(codec.encode(metadata), content.key, recipientPublicKey);
     };
 
     const repackMetadata = async (
       { contentCID, iv, references }: Metadata,
-      recipient: RecipientInfo,
+      recipientPublicKey: ECKey,
       codec: BlockCodec,
     ): Promise<Cose> => {
       const content = this.context.get(contentCID.toString());
@@ -154,7 +162,7 @@ export class SecureContext {
 
       const repackedMetadatas: Promise<Cose>[] = [];
       for (const meta of metadatas) {
-        repackedMetadatas.push(repackMetadata(meta, recipient, codec));
+        repackedMetadatas.push(repackMetadata(meta, recipientPublicKey, codec));
       }
 
       const repacked = await Promise.all(repackedMetadatas);
@@ -168,7 +176,7 @@ export class SecureContext {
 
       const metadata = new Metadata(contentCID, iv, links);
 
-      return await this.wallet.encryptCOSE(codec.encode(metadata), content.key, recipient);
+      return await this.wallet.encryptCOSE(codec.encode(metadata), content.key, recipientPublicKey);
     };
 
     const buildLinks = (links: Link[], cids: CID[]): Link[] =>
@@ -203,16 +211,15 @@ export class SecureContext {
       return result;
     };
 
-    const createCOSE = async (cid: CID | SCID, publicKey?: Key, kid?: string): Promise<Cose> => {
-      const recipient = await this.getRecipient(publicKey, kid);
+    const createCOSE = async (cid: CID | SCID, publicKey: ECKey): Promise<Cose> => {
       const codec = await ipfs.codecs.getCodec('dag-cbor');
 
       if (cid instanceof SCID) {
         this.addToContext(cid.cid, cid.key, cid.iv);
         const metadata = await getMetadata(await getItem(cid.cid));
-        return await repackMetadata(metadata, recipient, codec);
+        return await repackMetadata(metadata, publicKey, codec);
       }
-      return await createMetadata(cid, recipient, codec);
+      return await createMetadata(cid, publicKey, codec);
     };
 
     return {
@@ -268,8 +275,9 @@ export class SecureContext {
           remainderPath: '',
         };
       },
-      share: async (cid: CID | SCID, publicKey?: Key, kid?: string): Promise<SCID> => {
-        const cose = await createCOSE(cid, publicKey, kid);
+      share: async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
+        const publicKey = recipientPublicKey ?? this.wallet.publicKey;
+        const cose = await createCOSE(cid, publicKey);
         const metadataCID = await encryptMetadata(cose);
         const cidMetadata = this.context.get(metadataCID.toString());
         if (!cidMetadata) {
@@ -293,21 +301,6 @@ export class SecureContext {
     };
   }
 
-  private async getRecipient(publicKey?: Key, kid?: string): Promise<RecipientInfo> {
-    if (!publicKey) {
-      publicKey = this.wallet.publicKey;
-      kid = kid ?? this.wallet.keyId;
-    } else {
-      // eslint-disable-next-line no-extra-parens
-      kid = kid ?? (await this.wallet.getKeyId(publicKey));
-    }
-
-    return {
-      publicKey,
-      kid,
-    };
-  }
-
   private async encrypt(
     bytes: Uint8Array,
     ipfs: IPFSHTTPClient,
@@ -319,7 +312,7 @@ export class SecureContext {
       encrypted,
       key: encryptionKey,
       iv: encryptionIV,
-    } = await this.wallet.encrypt(bytes, key, iv, this.deterministicCID);
+    } = await this.wallet.encrypt(bytes, key, iv, this.deduplicationSecret);
     const { links, ...restOptions } = options;
     const cid = await ipfs.block.put(encrypted, restOptions);
     this.addToContext(cid, encryptionKey, encryptionIV, links ?? []);
@@ -343,6 +336,6 @@ export class SecureContext {
     const bytes = await ipfs.block.get(cid, options);
     const { key, iv } = metadata;
 
-    return await this.wallet.decrypt(bytes, key, iv);
+    return this.wallet.decrypt(bytes, key, iv);
   }
 }

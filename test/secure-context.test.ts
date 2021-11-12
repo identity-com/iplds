@@ -1,31 +1,30 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { randomBytes } from '@stablelib/random';
 import * as fs from 'fs';
-import { BlockCodec, create } from 'ipfs-http-client';
-import { IPFSHTTPClient } from 'ipfs-http-client/dist/src/types';
+import { BlockCodec, create, IPFSHTTPClient } from 'ipfs-http-client';
 import { decrypt, translate } from '../src/cose-decrypt';
 import { createECKey, decryptAES } from '../src/crypto';
 import { Metadata } from '../src/metadata';
 import { SCID } from '../src/scid';
 import { SecureContext } from '../src/secure-context';
 import { SecureIPFS } from '../src/secure-ipfs';
-import { Cose, Key } from '../src/types';
+import { Cose, ECKey, Key } from '../src/types';
 import { IWallet, Wallet } from '../src/wallet/wallet';
 import { SAMPLE_JSON } from './fixtures/data-fixture';
 
 describe.each([
-  [async () => await createECKey(), async () => await createECKey()],
-  [async () => await createECKey('K-256'), async () => await createECKey('K-256')],
+  // [async () => await createECKey('P-256'), async () => await createECKey('P-256')],
+  // [async () => await createECKey('K-256'), async () => await createECKey('K-256')],
   [async () => await createECKey('X25519'), async () => await createECKey('X25519')],
-])('Secure Context', (aliceGenerator: () => Promise<CryptoKeyPair>, bobGenerator: () => Promise<CryptoKeyPair>) => {
-  let aliceKeyPair: CryptoKeyPair;
-  let alice: IWallet<Key>;
-  let bob: IWallet<Key>;
+])('Secure Context', (aliceGenerator: () => Promise<ECKey>, bobGenerator: () => Promise<ECKey>) => {
+  let aliceKeyPair: ECKey;
+  let alice: IWallet<ECKey, Key>;
+  let bob: IWallet<ECKey, Key>;
   let ctx: SecureContext;
   let ipfs: IPFSHTTPClient;
   let secure: SecureIPFS;
-  // eslint-disable-next-line no-extra-parens
-  const wallet = async (generator: Promise<CryptoKeyPair>): Promise<IWallet<Key>> => Wallet.from(await generator);
+  let dededuplicationSecret: Uint8Array;
 
   beforeAll(() => {
     ipfs = create({ url: 'http://localhost:5001/api/v0' });
@@ -33,9 +32,11 @@ describe.each([
 
   beforeEach(async () => {
     aliceKeyPair = await aliceGenerator();
-    alice = await Wallet.from(aliceKeyPair);
-    bob = await wallet(bobGenerator());
-    ctx = new SecureContext(alice);
+    alice = Wallet.from({ privateKey: aliceKeyPair, publicKey: aliceKeyPair });
+    const bobJWK = await bobGenerator();
+    bob = Wallet.from({ privateKey: bobJWK, publicKey: bobJWK });
+    dededuplicationSecret = randomBytes(16);
+    ctx = new SecureContext(alice, dededuplicationSecret);
     secure = ctx.secure(ipfs);
   });
 
@@ -149,7 +150,7 @@ describe.each([
     const scid = await secure.share(cid, alice.publicKey);
     const cose = await scidToCose(ipfs, scid, codec);
 
-    const { content } = await decrypt(cose, aliceKeyPair.privateKey!);
+    const { content } = await decrypt(cose, aliceKeyPair);
     const item: Metadata = codec.decode(content);
 
     expect(item.contentCID.toString()).toStrictEqual(cid.toString());
@@ -176,16 +177,16 @@ describe.each([
 
     const cose = await scidToCose(ipfs, sharable, codec);
 
-    const { content } = await decrypt(cose, aliceKeyPair.privateKey!);
+    const { content } = await decrypt(cose, aliceKeyPair);
     const item: Metadata = codec.decode(content);
     expect(item.contentCID.toString()).toStrictEqual(cid.toString());
     expect(item.references).toHaveLength(1);
     expect(item.references[0].path).toBe('root/child');
     expect(item.references[0].cid).not.toStrictEqual(parent.root.child);
     const childCose = await secure.get(item.references[0].cid);
-    const { content: childContent } = await decrypt(translate(childCose.value), aliceKeyPair.privateKey!);
+    const { content: childContent } = await decrypt(translate(childCose.value), aliceKeyPair);
     const childMetadata: Metadata = codec.decode(childContent);
-    expect(childMetadata.contentCID).toStrictEqual(parent.root.child);
+    expect(childMetadata.contentCID).toEqual(parent.root.child);
     expect(childMetadata.references).toHaveLength(0);
   });
 
@@ -441,7 +442,7 @@ describe.each([
   describe('Deterministic CID', () => {
     it('Content CID should be deterministic', async () => {
       const cid1 = await secure.put(SAMPLE_JSON);
-      const ctx2 = new SecureContext(alice);
+      const ctx2 = new SecureContext(alice, dededuplicationSecret);
       const secure2 = ctx2.secure(ipfs);
 
       const cid2 = await secure2.put(SAMPLE_JSON);
@@ -451,7 +452,7 @@ describe.each([
 
     it('Content CID should not be deterministic', async () => {
       const cid1 = await secure.put(SAMPLE_JSON);
-      const ctx2 = new SecureContext(alice, false);
+      const ctx2 = new SecureContext(alice);
       const secure2 = ctx2.secure(ipfs);
 
       const cid2 = await secure2.put(SAMPLE_JSON);
@@ -461,7 +462,7 @@ describe.each([
 
     it('same document should have different CID uploaded by different users', async () => {
       const cid1 = await secure.put(SAMPLE_JSON);
-      const ctx2 = new SecureContext(bob, true);
+      const ctx2 = new SecureContext(bob, randomBytes(16));
       const secure2 = ctx2.secure(ipfs);
 
       const cid2 = await secure2.put(SAMPLE_JSON);
@@ -484,7 +485,7 @@ describe.each([
     const data = { content: 'secret information' };
     // Here is Alice, who has some secret content stored on IPFS.
     const alice = await createECKey();
-    const aliceContext = new SecureContext(await Wallet.from(alice));
+    const aliceContext = new SecureContext(Wallet.from({ publicKey: alice, privateKey: alice }));
     const aliceStore = aliceContext.secure(ipfs);
     const cid = await aliceStore.put(data);
 
@@ -492,14 +493,14 @@ describe.each([
     const bob = await createECKey();
 
     // Now Alice, can share use Bob's public key to create a shareable CID.
-    const scid = await aliceStore.share(cid, bob.publicKey!);
+    const scid = await aliceStore.share(cid, bob);
     const scidStr = await scid.asString();
     // Later Bob can use his private key
     // and the CID received from Alice to retrieve the content.
-    const bobContext = new SecureContext(await Wallet.from(bob));
+    const bobContext = new SecureContext(Wallet.from({ privateKey: bob, publicKey: bob }));
     const bobStore = bobContext.secure(ipfs);
 
-    const { value } = await bobStore.get(await SCID.from(scidStr));
+    const { value } = await bobStore.get(SCID.from(scidStr));
 
     expect(value).toStrictEqual(data);
   });
@@ -525,7 +526,7 @@ describe.each([
       const cid = await secure.put({ text: 'secure' });
       const scid = await secure.share(cid, bob.publicKey);
 
-      const bobContext = new SecureContext(await Wallet.from(bob));
+      const bobContext = new SecureContext(Wallet.from(bob));
       const bobStore = bobContext.secure(ipfs);
 
       const cids = await bobStore.getCIDs(scid);
@@ -540,7 +541,7 @@ describe.each([
 
       const scid = await secure.share(cid2, bob.publicKey);
 
-      const bobContext = new SecureContext(await Wallet.from(bob));
+      const bobContext = new SecureContext(Wallet.from(bob));
       const bobStore = bobContext.secure(ipfs);
 
       const cids = await bobStore.getCIDs(scid);

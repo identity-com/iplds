@@ -1,27 +1,23 @@
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
 const config = {
   verbose: true,
-  preset: "ts-jest",
-  testEnvironment: "node",
+  preset: 'ts-jest',
+  testEnvironment: 'node',
   transform: {
-    "\\.[jt]sx?$": "ts-jest"
+    '\\.[jt]sx?$': 'ts-jest',
   },
-  testRegex: "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$',
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   coverageThreshold: {
-    "global": {
-      "branches": 75,
-      "functions": 80,
-      "lines": 90,
-      "statements": 90
-    }
+    global: {
+      branches: 75,
+      functions: 80,
+      lines: 90,
+      statements: 90,
+    },
   },
-  coverageReporters: [
-    "json",
-    "lcov",
-    "text",
-    "clover"
-  ],
-  setupFiles: ['<rootDir>/jest.crypto-setup.js']
+  transformIgnorePatterns: ['/node_modules/'],
+  coverageReporters: ['json', 'lcov', 'text', 'clover'],
+  setupFiles: ['<rootDir>/jest.crypto-setup.js'],
 };
 export default config;

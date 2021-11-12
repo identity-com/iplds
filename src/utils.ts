@@ -93,13 +93,9 @@ export const invertSimpleObject = (obj: Record<string, string | number>): Record
   for (const key of keys) {
     result[obj[key]] = key;
   }
+
   return result;
 };
 
 export const cloneRecipient = (recipient: Recipient): Recipient =>
-  [
-    { ...recipient[0] },
-    { ...recipient[1] },
-    new Uint8Array(recipient[2]),
-    recipient[3].map(cloneRecipient),
-  ] as Recipient;
+  [{ ...recipient[0] }, { ...recipient[1] }, recipient[2].slice(0), recipient[3].map(cloneRecipient)] as Recipient;

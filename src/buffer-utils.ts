@@ -1,7 +1,5 @@
 import { concat } from './utils';
 
-export const encoder = new TextEncoder();
-export const decoder = new TextDecoder();
 const MAX_INT32 = 2 ** 32;
 
 const writeUInt32BE = (buf: Uint8Array, value: number, offset?: number): void => {

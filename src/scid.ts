@@ -9,7 +9,7 @@ const CID_BYTES = 36;
 export class SCID {
   constructor(public readonly key: Key, public readonly iv: Uint8Array, public readonly cid: CID) {}
 
-  static async from(cid: string | CID): Promise<SCID> {
+  static from(cid: string | CID): SCID {
     const sharedCID = CID.asCID(cid) ?? CID.parse(cid as string);
 
     if (sharedCID.code !== identity.code) {
@@ -21,13 +21,13 @@ export class SCID {
 
     const contentCID = CID.decode(sharedCID.bytes.subarray(4, 4 + CID_BYTES));
 
-    const { key, iv } = await Wallet.fromRaw(sharedCID.bytes.subarray(4 + CID_BYTES));
+    const { key, iv } = Wallet.fromRaw(sharedCID.bytes.subarray(4 + CID_BYTES));
 
     return new SCID(key, iv, contentCID);
   }
 
   async asCID(): Promise<CID> {
-    const digest = await identity.digest(concat(this.cid.bytes, await Wallet.toRaw(this.key, this.iv)));
+    const digest = await identity.digest(concat(this.cid.bytes, Wallet.toRaw(this.key, this.iv)));
     return CID.createV1(identity.code, digest);
   }
 
