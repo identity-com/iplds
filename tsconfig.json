@@ -1,31 +1,13 @@
 {
+  "extends": "./tsconfig.build.json",
+  "include": ["packages"],
   "compilerOptions": {
-    "target": "ES2019",
-    "module": "ES2020",
-    "lib": ["DOM", "ES2020"],
-    "moduleResolution": "node",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "baseUrl": ".",
+    "baseUrl": "./packages",
     "typeRoots": ["./node_modules/@types"],
-    "rootDir": "./src",
-    "outDir": "dist",
-    "importHelpers": true,
-    "allowJs": true,
-    "checkJs": false,
-    "resolveJsonModule": true,
-    "allowSyntheticDefaultImports": true,
-  },
-  "include": [
-    "src",
-    "test"
-  ],
-  "exclude": [
-    "node_modules",
-  ]
+    "paths": {
+      "@identity.com/secure-context": ["secure-context/src"],
+      "@identity.com/jwk": ["jwk/src"],
+      "@identity.com/did-key-resolver": ["did-key-resolver/src"],
+    }
+  }
 }

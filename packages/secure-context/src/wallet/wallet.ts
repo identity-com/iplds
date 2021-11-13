@@ -1,7 +1,7 @@
 import { decrypt, translate } from '../cose-decrypt';
 import { encryptToCOSE } from '../cose-encrypt';
 import { createAESGCMKey, decryptAES, encryptAES, generateIV, IV_BYTES, KEY_BYTES, sha256Raw } from '../crypto';
-import { sanitizePublicKey } from '../jwk';
+import { sanitizePublicKey } from '../../../jwk/src/jwk';
 import { Cose, ECKey, Key } from '../types';
 import { concat } from '../utils';
 

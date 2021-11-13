@@ -4,13 +4,25 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "jest",
+      "name": "jwk",
       "skipFiles": ["<node_internals>/**"],
-      "cwd": "${workspaceFolder}",
+      "cwd": "${workspaceFolder}/packages/jwk",
+      "runtimeArgs": ["--inspect-brk", "${workspaceRoot}/node_modules/.bin/jest", "--runInBand", "--coverage", "false"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "sourceMaps": true
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "iplds",
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}/packages/iplds",
       "runtimeArgs": ["--inspect-brk", "${workspaceRoot}/node_modules/.bin/jest", "--runInBand", "--coverage", "false"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "sourceMaps": true
     }
+
   ]
 }

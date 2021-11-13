@@ -1,22 +1,16 @@
 import { CID } from 'ipfs-http-client';
-import { KEY_CRV } from './cose-js/common';
+import { JWK } from '@identity.com/jwk';
 import { Metadata } from './metadata';
 import { ComplexObject } from './utils';
 
 export type Key = Uint8Array;
 export type ECKey = JWK;
 
-export interface JWK extends JsonWebKey {
-  kid?: string;
-}
-
 export type Link = {
   path: string;
   cid: CID;
   iv: Uint8Array; // IV used to encrypt the CID
 };
-
-export type ECDHCurve = keyof typeof KEY_CRV;
 
 export interface CIDMetadata {
   key: Key;
@@ -58,3 +52,5 @@ export type AESEncryption = {
   key: Key;
   iv: Uint8Array;
 };
+
+export type Dictionary<T> = Record<string, T>;

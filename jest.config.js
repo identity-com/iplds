@@ -1,12 +1,11 @@
 /** @type {import('ts-jest/dist/types').InitialOptionsTsJest} */
-const config = {
-  testTimeout: 60000,
+module.exports = {
   preset: 'ts-jest',
+  runner: 'groups',
   testEnvironment: 'node',
   transform: {
-    '\\.[jt]sx?$': 'ts-jest',
+    '^.+\\.ts?$': 'ts-jest',
   },
-  testRegex: '(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$',
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   coverageThreshold: {
     global: {
@@ -18,6 +17,6 @@ const config = {
   },
   transformIgnorePatterns: ['/node_modules/'],
   coverageReporters: ['json', 'lcov', 'text', 'clover'],
-  setupFiles: ['<rootDir>/jest.crypto-setup.js'],
+  collectCoverageFrom: ['<rootDir>/src/**/*.ts'],
+  testMatch: ['<rootDir>/test/**/*.test.ts'],
 };
-export default config;

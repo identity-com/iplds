@@ -1,28 +1,34 @@
-import pkg from './package.json';
-import ts from "rollup-plugin-ts";
+import autoExternal from 'rollup-plugin-auto-external';
 import del from 'rollup-plugin-delete';
-import { terser } from "rollup-plugin-terser";
-import { builtinModules } from "module";
+import { terser } from 'rollup-plugin-terser';
+import ts from 'rollup-plugin-ts';
 
-export default {
-  input: "src/index.ts",
+export const isProduction = process.env.NODE_ENV === 'production';
+if (isProduction) console.info('Building for production!');
+
+export const buildPluginsSection = () => [
+  del({ targets: 'dist/*' }),
+  ts({
+    tsconfig: 'tsconfig.build.json',
+  }),
+  terser(),
+  autoExternal(),
+];
+
+export const buildConfig = ({ pkg, plugins }) => ({
+  input: 'src/index.ts',
   output: [
     {
-      file: pkg.main,
-      format: "esm",
+      file: pkg.module,
+      format: 'esm',
       sourcemap: true,
-    }
+    },
+    {
+      file: pkg.main,
+      format: 'cjs',
+      sourcemap: isProduction,
+    },
   ],
-  plugins: [
-    del({ targets: 'dist/*' }),
-    ts(),
-    terser()
-  ],
-  external: [
-    'multiformats/hashes/identity',
-    ...builtinModules,
-    ...Object.keys(pkg.dependencies ?? {}),
-    ...Object.keys(pkg.devDependencies ?? {}),
-    ...Object.keys(pkg.peerDependencies ?? {}),
-  ]
-};
+  plugins: plugins ?? buildPluginsSection(),
+  external: ['multiformats/hashes/identity'],
+});
