@@ -1,18 +1,17 @@
 import { DIDDocument, VerificationMethod } from 'did-resolver';
 import { BaseName, decode, encoding } from 'multibase';
 import { convertPublicKey as ed2x25519 } from 'ed2curve-esm';
-import { toJWK as exportJWK } from '@identity.com/jwk';
+import { toJWK as exportJWK, JWK } from '@identity.com/jwk';
 
 export class DIDKeyResolver {
-  public resolveKey = (did: DIDDocument, kid: string): JsonWebKey => {
-    console.log(did);
+  public resolveKey = (did: DIDDocument, kid: string): JWK => {
     const verificationMethod: VerificationMethod | undefined = this.keyAgreementVerificationMethod(did, kid);
 
-    if (verificationMethod) {
-      return this.extractJWK(verificationMethod);
+    if (!verificationMethod) {
+      throw new Error(`Couldn't resolve public key for DID [${did.id}] with kid [${kid}]`);
     }
 
-    throw new Error(`Couldn't resolve public key for DID [${did.id}] with kid [${kid}]`);
+    return this.extractJWK(verificationMethod);
   };
 
   private keyAgreementVerificationMethod(did: DIDDocument, kid: string): VerificationMethod | undefined {
@@ -50,9 +49,10 @@ export class DIDKeyResolver {
     return keyAgreement;
   }
 
-  private extractJWK(verificationMethod: VerificationMethod): JsonWebKey {
+  private extractJWK(verificationMethod: VerificationMethod): JWK {
     if (verificationMethod.publicKeyJwk) {
-      return verificationMethod.publicKeyJwk;
+      //TODO: add checks
+      return verificationMethod.publicKeyJwk as JWK;
     }
 
     if (verificationMethod.publicKeyMultibase) {
@@ -74,7 +74,7 @@ export class DIDKeyResolver {
     throw new Error('Unsupported key format');
   }
 
-  private readonly toJWK = (methodType: string, publicKeyBinary: Uint8Array): JsonWebKey => {
+  private readonly toJWK = (methodType: string, publicKeyBinary: Uint8Array): JWK => {
     if (methodType.includes('X25519')) {
       return exportJWK(publicKeyBinary, 'X25519');
     } else if (methodType.includes('Ed25519')) {
