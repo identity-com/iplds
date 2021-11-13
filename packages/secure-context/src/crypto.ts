@@ -1,3 +1,4 @@
+import { CURVES, EC256, EC256JWK, ECDHCurve } from '@identity.com/jwk';
 import { Crypto } from '@peculiar/webcrypto';
 import { AES } from '@stablelib/aes';
 import { AESKW } from '@stablelib/aes-kw';
@@ -7,9 +8,9 @@ import { decode, encode } from '@stablelib/hex';
 import { randomBytes } from '@stablelib/random';
 import { sharedKey } from '@stablelib/x25519';
 import { ec as EC } from 'elliptic';
+import { generateKeyPair, jwkPrivateToRaw, jwkPublicToRaw, sanitizePublicKey } from '../../jwk/src/jwk';
 import { concatKdf, lengthAndInput, uint32be } from './buffer-utils';
-import { generateKeyPair, jwkPrivateToRaw, jwkPublicToRaw, sanitizePublicKey } from './jwk';
-import { ECDHCurve, ECKey, Key, KeyAgreement, Recipient } from './types';
+import { ECKey, Key, KeyAgreement, Recipient } from './types';
 import { concat } from './utils';
 
 const IV_BITS = 96;
@@ -41,14 +42,15 @@ export const sha256Raw = async (data: Uint8Array): Promise<Uint8Array> =>
 export const generateIV = (): Uint8Array => randomBytes(IV_BYTES);
 
 export const encryptAES = async (data: Uint8Array, key: Key, iv: Uint8Array): Promise<Uint8Array> => {
-  return await Promise.resolve(new GCM(new AES(key)).seal(iv, data)!);
+  return await Promise.resolve(new GCM(new AES(key)).seal(iv, data));
 };
 
 export const decryptAES = async (encrypted: Uint8Array, key: Key, iv: Uint8Array): Promise<Uint8Array> => {
+  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   return await Promise.resolve(new GCM(new AES(key)).open(iv, encrypted)!);
 };
 
-export const createAESGCMKey = async (): Promise<Uint8Array> => await Promise.resolve(randomBytes(256));
+export const createAESGCMKey = async (): Promise<Uint8Array> => await Promise.resolve(randomBytes(KEY_BYTES));
 
 export const deriveKey = async (
   publicKey: ECKey,
@@ -70,13 +72,15 @@ export const deriveKey = async (
   return await concatKdf(digest, sharedSecret, keyLength, value);
 };
 
-const CURVE_MAP: Record<ECDHCurve, string> = {
+const ELLIPTIC_CURVE_MAP: Record<EC256, string> = {
   'K-256': 'secp256k1',
   'P-256': 'p256',
-  X25519: 'X25519',
 };
 
 const getSharedSecret = (publicKey: ECKey, privateKey: ECKey): Uint8Array => {
+  if (!CURVES.includes(publicKey.crv)) {
+    throw new Error(`Unsupported curve type: ${publicKey.crv}`);
+  }
   if (publicKey.crv !== privateKey.crv) {
     throw new Error('Incompatible keys');
   }
@@ -84,25 +88,8 @@ const getSharedSecret = (publicKey: ECKey, privateKey: ECKey): Uint8Array => {
     return sharedKey(jwkPrivateToRaw(privateKey), jwkPublicToRaw(publicKey, false, true));
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-  const ec = new EC(CURVE_MAP[publicKey.crv! as ECDHCurve] || 'K-256');
-
-  const alice = ec.keyFromPublic({
-    x: encode(base64.decode(publicKey.x!)),
-    y: encode(base64.decode(publicKey.y!)),
-  });
-  const bob = ec.keyFromPrivate(jwkPrivateToRaw(privateKey));
-  const shared = bob.derive(alice.getPublic()).toString(16).padStart(64, '0');
-
-  return decode(shared);
+  return ellipticSharedKey(publicKey, privateKey as EC256JWK);
 };
-
-const digest = async (algorithm: string, data: BufferSource): Promise<Uint8Array> => {
-  const subtleDigest = `SHA-${algorithm.substr(-3)}`;
-  return new Uint8Array(await crypto.subtle.digest(subtleDigest, data));
-};
-
-const ecdhAllowed = (crv: string): boolean => ['P-256', 'K-256', 'X25519'].includes(crv);
 
 export const encryptKeyManagement = async (
   alg: string,
@@ -110,14 +97,11 @@ export const encryptKeyManagement = async (
   cek: Key,
   providedParameters: { apu?: string; apv?: string; epk?: ECKey } = {},
 ): Promise<KeyAgreement> => {
-  if (!recipientPublic.crv) {
-    throw new Error(`Invalid JWK key`);
-  }
   if (!ecdhAllowed(recipientPublic.crv)) {
     throw new Error('ECDH-ES with the provided key is not allowed or not supported by your javascript runtime');
   }
   const { epk } = providedParameters;
-  const ephemeralKey = epk ?? generateKeyPair(recipientPublic.crv as ECDHCurve);
+  const ephemeralKey = epk ?? generateKeyPair(recipientPublic.crv);
 
   const sharedSecret = await deriveKey(recipientPublic, ephemeralKey, alg, parseInt(alg.substr(-5, 3), 10));
   // parameters = { epk: { x, y, crv, kty } };
@@ -135,9 +119,6 @@ export const decryptKeyManagement = async (
   ecdhRecipient: Recipient,
 ): Promise<Key> => {
   // Direct Key Agreement
-  if (!recipientPrivate.crv) {
-    throw new Error(`Invalid JWK key`);
-  }
   if (!ecdhAllowed(recipientPrivate.crv)) {
     throw new Error('ECDH-ES with the provided key is not allowed or not supported by your javascript runtime');
   }
@@ -148,10 +129,29 @@ export const decryptKeyManagement = async (
   return unwrap(sharedSecret, ecdhRecipient[2]);
 };
 
+const digest = async (algorithm: string, data: BufferSource): Promise<Uint8Array> => {
+  const subtleDigest = `SHA-${algorithm.substr(-3)}`;
+  return new Uint8Array(await crypto.subtle.digest(subtleDigest, data));
+};
+
+const ecdhAllowed = (crv: ECDHCurve): boolean => CURVES.includes(crv);
+
 const wrap = async (key: Uint8Array, cek: Key): Promise<Uint8Array> => {
   return await Promise.resolve(new AESKW(key).wrapKey(cek));
 };
 
 const unwrap = async (key: Uint8Array, wrappedKey: Uint8Array): Promise<Uint8Array> => {
   return await Promise.resolve(new AESKW(key).unwrapKey(wrappedKey));
+};
+const ellipticSharedKey = (publicKey: EC256JWK, privateKey: EC256JWK): Uint8Array => {
+  const ec = new EC(ELLIPTIC_CURVE_MAP[publicKey.crv]);
+
+  const alice = ec.keyFromPublic({
+    x: encode(base64.decode(publicKey.x)),
+    y: encode(base64.decode(publicKey.y)),
+  });
+  const bob = ec.keyFromPrivate(jwkPrivateToRaw(privateKey));
+  const shared = bob.derive(alice.getPublic()).toString(16).padStart(64, '0');
+
+  return decode(shared);
 };

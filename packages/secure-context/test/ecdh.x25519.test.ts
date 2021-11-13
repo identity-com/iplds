@@ -1,5 +1,5 @@
 import { sharedKey } from '@stablelib/x25519';
-import { jwkPublicToRaw } from '../src/jwk';
+import { jwkPublicToRaw } from '@identity.com/jwk';
 
 describe('ECDH with X25519', () => {
   // (https://datatracker.ietf.org/doc/html/rfc8037#appendix-A.6)

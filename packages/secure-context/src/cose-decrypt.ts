@@ -1,7 +1,7 @@
 import { getIV, getRecipientId } from './cose';
 import { untranslateHeaders, untranslateKey } from './cose-js/common';
 import { decryptAES, decryptKeyManagement } from './crypto';
-import { Cose, ECKey, JWK, Key, Recipient } from './types';
+import { Cose, ECKey, Key, Recipient } from './types';
 import { cloneRecipient } from './utils';
 
 export const decrypt = async function (
@@ -27,7 +27,7 @@ export const translate = (cose: Cose): Cose =>
   [
     Object.fromEntries(untranslateHeaders(cose[0])),
     {
-      iv: untranslateHeaders(cose[1]).get('iv') as Uint8Array,
+      iv: untranslateHeaders(cose[1]).get('iv') as unknown as Uint8Array,
     },
     cose[2],
     cose[3].map(translateRecipient),
@@ -39,6 +39,6 @@ const translateRecipient = (recipient: Recipient): Recipient =>
     Object.fromEntries(untranslateHeaders(recipient[1])),
     recipient[2],
     recipient[3].map(translateRecipient),
-  ] as Recipient;
+  ] as unknown as Recipient;
 
-const fromCOSEKey = (key: JWK): JWK => Object.fromEntries(untranslateKey(key).entries()) as JWK;
+const fromCOSEKey = (key: ECKey): ECKey => Object.fromEntries(untranslateKey(key).entries()) as unknown as ECKey;

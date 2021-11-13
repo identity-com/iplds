@@ -73,7 +73,5 @@ const toCOSEKey = (key: ECKey): ECKey => {
   delete coseKey.ext;
   delete coseKey.use;
 
-  coseKey.kty = coseKey.kty === 'EC' ? 'EC2' : coseKey.kty;
-
-  return Object.fromEntries(translateKey(coseKey)) as ECKey;
+  return Object.fromEntries(translateKey(coseKey)) as unknown as ECKey;
 };

@@ -87,14 +87,23 @@ const createPath = (obj: Record<string, unknown>, path: string[], value: unknown
   current[path[0]] = value;
 };
 
-export const invertSimpleObject = (obj: Record<string, string | number>): Record<string | number, string> => {
+type AllValues<T extends Record<PropertyKey, PropertyKey>> = {
+  [P in keyof T]: { key: P; value: T[P] };
+}[keyof T];
+
+type InvertResult<T extends Record<PropertyKey, PropertyKey>> = {
+  [P in AllValues<T>['value']]: Extract<AllValues<T>, { value: P }>['key'];
+};
+
+export const invertSimpleObject = <T extends Record<PropertyKey, PropertyKey>>(obj: T): InvertResult<T> => {
+  const result: Record<PropertyKey, PropertyKey> = {};
   const keys = Object.keys(obj);
-  const result: Record<string | number, string> = {};
   for (const key of keys) {
-    result[obj[key]] = key;
+    const newKey = obj[key];
+    result[newKey] = key;
   }
 
-  return result;
+  return result as InvertResult<T>;
 };
 
 export const cloneRecipient = (recipient: Recipient): Recipient =>

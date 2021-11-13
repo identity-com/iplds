@@ -3,14 +3,14 @@
 import { randomBytes } from '@stablelib/random';
 import * as fs from 'fs';
 import { BlockCodec, create, IPFSHTTPClient } from 'ipfs-http-client';
-import { generateKeyPair } from '../src/jwk';
+import { generateKeyPair, ECDHCurve } from '@identity.com/jwk';
 import { decrypt, translate } from '../src/cose-decrypt';
 import { createECKey, decryptAES } from '../src/crypto';
 import { Metadata } from '../src/metadata';
 import { SCID } from '../src/scid';
 import { SecureContext } from '../src/secure-context';
 import { SecureIPFS } from '../src/secure-ipfs';
-import { Cose, ECDHCurve, ECKey, Key } from '../src/types';
+import { Cose, ECKey, Key } from '../src/types';
 import { IWallet, Wallet } from '../src/wallet/wallet';
 import { SAMPLE_JSON } from './fixtures/data-fixture';
 
