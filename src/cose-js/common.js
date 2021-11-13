@@ -9,7 +9,7 @@ const ALG_TAGS = {
   A128W: -3,
   A192KW: -4,
   A256KW: -5,
-  'ECDH-ES-A256KW': -31,
+  'ECDH-ES+A256KW': -31,
   A256GCM: 3,
 };
 
@@ -48,20 +48,20 @@ const KEY_TYPES = {
 
 const KEY_TYPES_TO_ALGORITHMS = {
   EC2: ECDH,
-  OKP: ECDH_ES
+  OKP: ECDH_ES,
 };
 
 export const KEY_CRV = {
   'P-256': 1,
-  'X25519': 6,
+  X25519: 6,
   'K-256': 8,
 };
 
 export const CRV_ALG = {
   'P-256': ECDH,
   'K-256': ECDH,
-  'X25519': ECDH_ES,
-}
+  X25519: ECDH_ES,
+};
 
 const KEY_TRANSLATORS = {
   kty: (key) => strictLookup(key, KEY_TYPES, 'kty'),
@@ -81,20 +81,15 @@ const strictLookup = (key, target, paramName) => {
   return target[key];
 };
 
-export const translateKey = (obj) =>
-  translate(obj, KEY_PARAMETERS, KEY_TRANSLATORS);
+export const translateKey = (obj) => translate(obj, KEY_PARAMETERS, KEY_TRANSLATORS);
 
-export const untranslateKey = (obj) =>
-  translate(obj, invertSimpleObject(KEY_PARAMETERS), KEY_UNTRANSLATORS);
+export const untranslateKey = (obj) => translate(obj, invertSimpleObject(KEY_PARAMETERS), KEY_UNTRANSLATORS);
 
-export const translateHeaders = (obj) =>
-  translate(obj, HEADER_PARAMETERS, TRANSLATORS);
+export const translateHeaders = (obj) => translate(obj, HEADER_PARAMETERS, TRANSLATORS);
 
-export const untranslateHeaders = (obj) =>
-  translate(obj, invertSimpleObject(HEADER_PARAMETERS), UNTRANSLATORS);
+export const untranslateHeaders = (obj) => translate(obj, invertSimpleObject(HEADER_PARAMETERS), UNTRANSLATORS);
 
-export const translateKeyTypeToAlgorithm = (keyType) =>
-  strictLookup(keyType, KEY_TYPES_TO_ALGORITHMS, 'key type');
+export const translateKeyTypeToAlgorithm = (keyType) => strictLookup(keyType, KEY_TYPES_TO_ALGORITHMS, 'key type');
 
 export const translate = (obj, mainTranslator, propertiesTranslator) => {
   const result = new Map();

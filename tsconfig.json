@@ -14,6 +14,7 @@
     "baseUrl": ".",
     "typeRoots": ["./node_modules/@types"],
     "rootDir": "./src",
+    "outDir": "dist",
     "importHelpers": true,
     "allowJs": true,
     "checkJs": false,
