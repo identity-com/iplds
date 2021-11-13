@@ -1,0 +1,51 @@
+{
+  "name": "@identity.com/iplds",
+  "version": "0.1.0",
+  "description": "IPLDS - Secure DAG storage on IPFSt",
+  "keywords": [
+    "jwk"
+  ],
+  "bugs": "https://github.com/identity-com/iplds/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/identity-com/iplds"
+  },
+  "license": "MIT",
+  "author": "Blockvis <info@blockvis.com> (https://blockvis.com)",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "typings": "dist/esm/index.d.ts",
+  "files": [
+    "README.md",
+    "dist"
+  ],
+  "scripts": {
+    "analyze": "size-limit --why",
+    "build": "rollup -c",
+    "lint": "eslint \"**/*.ts\"",
+    "lint:fix": "yarn lint --fix",
+    "size": "size-limit",
+    "start": "rollup -cw",
+    "test": "jest "
+  },
+  "lint-staged": {
+    "**/*.ts": "yarn lint:fix"
+  },
+  "resolutions": {
+    "**/ua-parser-js": "1.0.2"
+  },
+  "dependencies": {
+    "@identity.com/did-key-resolver": "*",
+    "@identity.com/secure-context": "*"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=16.0"
+  },
+  "size-limit": [
+    {
+      "path": "dist/index.js",
+      "limit": "250 KB"
+    }
+  ]
+}
