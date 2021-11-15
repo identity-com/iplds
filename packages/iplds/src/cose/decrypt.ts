@@ -1,8 +1,8 @@
+import { decryptAES, decryptKeyManagement } from '../crypto/crypto';
+import { Cose, Dictionary, ECKey, Key, Recipient } from '../types/types';
+import { cloneRecipient } from '../utils/utils';
+import { untranslateHeaders, untranslateKey } from './common';
 import { getIV, getRecipientId } from './cose';
-import { untranslateHeaders, untranslateKey } from './cose-js/common';
-import { decryptAES, decryptKeyManagement } from './crypto';
-import { Cose, Dictionary, ECKey, Key, Recipient } from './types';
-import { cloneRecipient } from './utils';
 
 export const decrypt = async function (
   cose: Cose,

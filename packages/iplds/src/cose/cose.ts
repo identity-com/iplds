@@ -1,4 +1,4 @@
-import { CipherText, Cose } from './types';
+import { CipherText, Cose } from '../types/types';
 
 export const getCEK = (cose: Cose): CipherText => cose[3][0][2];
 export const getContent = (cose: Cose): CipherText => cose[2];

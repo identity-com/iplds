@@ -1,8 +1,8 @@
 import { CID } from 'ipfs-http-client';
 import { identity } from 'multiformats/hashes/identity';
-import { Key } from './types';
-import { concat } from './utils';
-import { Wallet } from './wallet';
+import { concat } from 'uint8arrays/concat';
+import { Wallet } from '../secure/wallet';
+import { Key } from '../types/types';
 
 const CID_BYTES = 36;
 
@@ -27,7 +27,7 @@ export class SCID {
   }
 
   async asCID(): Promise<CID> {
-    const digest = await identity.digest(concat(this.cid.bytes, Wallet.toRaw(this.key, this.iv)));
+    const digest = await identity.digest(concat([this.cid.bytes, Wallet.toRaw(this.key, this.iv)]));
     return CID.createV1(identity.code, digest);
   }
 

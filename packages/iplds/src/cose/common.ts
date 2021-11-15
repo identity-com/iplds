@@ -1,6 +1,6 @@
 import { ECDHCurve } from '@identity.com/jwk';
-import { Dictionary } from '../types';
-import { invertSimpleObject } from '../utils';
+import { Dictionary } from '../types/types';
+import { invertSimpleObject } from '../utils/utils';
 
 export const ECDH = 'ECDH';
 export const ECDH_ES = 'ECDH-ES';

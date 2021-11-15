@@ -1,7 +1,7 @@
 import { CID } from 'ipfs-http-client';
 import { sha256 } from 'multiformats/hashes/sha2';
-import { createAESGCMKey, generateIV } from '../src/crypto';
-import { SCID } from '../src/scid';
+import { createAESGCMKey, generateIV } from '../src/crypto/crypto';
+import { SCID } from '../src/types/scid';
 
 describe('SCID', () => {
   describe('toCID()', () => {

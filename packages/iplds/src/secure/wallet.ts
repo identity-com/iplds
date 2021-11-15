@@ -1,9 +1,9 @@
-import { decrypt, translate } from '../cose-decrypt';
-import { encryptToCOSE } from '../cose-encrypt';
-import { createAESGCMKey, decryptAES, encryptAES, generateIV, IV_BYTES, KEY_BYTES, sha256Raw } from '../crypto';
-import { sanitizePublicKey } from '../../../jwk/src/jwk';
-import { Cose, ECKey, Key } from '../types';
-import { concat } from '../utils';
+import { sanitizePublicKey } from '@identity.com/jwk';
+import { concat } from 'uint8arrays/concat';
+import { decrypt, translate } from '../cose/decrypt';
+import { encryptToCOSE } from '../cose/encrypt';
+import { createAESGCMKey, decryptAES, encryptAES, generateIV, IV_BYTES, KEY_BYTES, sha256Raw } from '../crypto/crypto';
+import { Cose, ECKey, Key } from '../types/types';
 
 export interface IWallet<ECKey = unknown, AESKey = unknown> {
   publicKey: ECKey;
@@ -40,7 +40,7 @@ export class Wallet implements IWallet<ECKey, Key> {
   }
 
   static toRaw(key: Key, iv: Uint8Array): Uint8Array {
-    return concat(iv, key);
+    return concat([iv, key]);
   }
 
   async encryptCOSE(content: Uint8Array, key: Key, recipientPublicKey: ECKey): Promise<Cose> {
@@ -105,7 +105,7 @@ export class Wallet implements IWallet<ECKey, Key> {
     const encoder = new TextEncoder();
     iv =
       iv ??
-      (await sha256Raw(await sha256Raw(concat(encoder.encode('IV'), deduplicationSecret, dataHash)))).subarray(
+      (await sha256Raw(await sha256Raw(concat([encoder.encode('IV'), deduplicationSecret, dataHash])))).subarray(
         0,
         IV_BYTES,
       );
@@ -113,7 +113,7 @@ export class Wallet implements IWallet<ECKey, Key> {
     key =
       key ??
       // eslint-disable-next-line no-extra-parens
-      (await sha256Raw(await sha256Raw(concat(encoder.encode('ENCRYPTION_KEY'), deduplicationSecret, dataHash))));
+      (await sha256Raw(await sha256Raw(concat([encoder.encode('ENCRYPTION_KEY'), deduplicationSecret, dataHash]))));
 
     return { key, iv };
   }

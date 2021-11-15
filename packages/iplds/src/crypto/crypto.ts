@@ -1,4 +1,5 @@
 import { CURVES, EC256, EC256JWK, ECDHCurve } from '@identity.com/jwk';
+import { generateKeyPair, jwkPrivateToRaw, jwkPublicToRaw, sanitizePublicKey } from '@identity.com/jwk/src/jwk';
 import { Crypto } from '@peculiar/webcrypto';
 import { AES } from '@stablelib/aes';
 import { AESKW } from '@stablelib/aes-kw';
@@ -8,16 +9,21 @@ import { decode, encode } from '@stablelib/hex';
 import { randomBytes } from '@stablelib/random';
 import { sharedKey } from '@stablelib/x25519';
 import { ec as EC } from 'elliptic';
-import { generateKeyPair, jwkPrivateToRaw, jwkPublicToRaw, sanitizePublicKey } from '../../jwk/src/jwk';
-import { concatKDF } from './buffer-utils';
-import { ECKey, Key, KeyAgreement, Recipient } from './types';
+import { concat } from 'uint8arrays/concat';
+import { ECKey, Key, KeyAgreement, Recipient } from '../types/types';
 
 const IV_BITS = 96;
+const MAX_INT32 = 2 ** 32;
+
 export const IV_BYTES = IV_BITS / 8;
 export const KEY_BYTES = 32;
 export const ALG_ENCRYPTION = 'A256GCM';
 export const ALG_KEY_AGREEMENT = 'ECDH-ES+A256KW'; // -31: https://datatracker.ietf.org/doc/html/rfc8152#section-12.5.1
 
+const ELLIPTIC_CURVE_MAP: Record<EC256, string> = {
+  'K-256': 'secp256k1',
+  'P-256': 'p256',
+};
 const crypto = new Crypto();
 const base64 = new URLSafeCoder();
 
@@ -55,16 +61,7 @@ export const deriveKey = async (
   privateKey: ECKey,
   algorithm: string,
   keyLength: number,
-): Promise<Key> => {
-  const sharedSecret = getSharedSecret(publicKey, privateKey);
-
-  return await concatKDF(digest, sharedSecret, keyLength, algorithm);
-};
-
-const ELLIPTIC_CURVE_MAP: Record<EC256, string> = {
-  'K-256': 'secp256k1',
-  'P-256': 'p256',
-};
+): Promise<Key> => await concatKDF(getSharedSecret(publicKey, privateKey), keyLength, algorithm);
 
 const getSharedSecret = (publicKey: ECKey, privateKey: ECKey): Uint8Array => {
   if (!CURVES.includes(publicKey.crv)) {
@@ -118,11 +115,6 @@ export const decryptKeyManagement = async (
   return unwrap(sharedSecret, ecdhRecipient[2]);
 };
 
-const digest = async (algorithm: string, data: BufferSource): Promise<Uint8Array> => {
-  const subtleDigest = `SHA-${algorithm.substr(-3)}`;
-  return new Uint8Array(await crypto.subtle.digest(subtleDigest, data));
-};
-
 const ecdhAllowed = (crv: ECDHCurve): boolean => CURVES.includes(crv);
 
 const wrap = async (key: Uint8Array, cek: Key): Promise<Uint8Array> => {
@@ -143,4 +135,36 @@ const ellipticSharedKey = (publicKey: EC256JWK, privateKey: EC256JWK): Uint8Arra
   const shared = bob.derive(alice.getPublic()).toString(16).padStart(64, '0');
 
   return decode(shared);
+};
+
+const writeUInt32BE = (buf: Uint8Array, value: number, offset?: number): void => {
+  if (value < 0 || value >= MAX_INT32) {
+    throw new RangeError(`value must be >= 0 and <= ${MAX_INT32 - 1}. Received ${value}`);
+  }
+  buf.set([value >>> 24, value >>> 16, value >>> 8, value & 0xff], offset);
+};
+
+const uint32be = (value: number): Uint8Array => {
+  const buf = new Uint8Array(4);
+  writeUInt32BE(buf, value);
+  return buf;
+};
+
+const lengthAndInput = (input: Uint8Array): Uint8Array => concat([uint32be(input.length), input]);
+
+// Implementation from:
+// https://github.com/decentralized-identity/did-jwt
+const concatKDF = async (secret: Uint8Array, keyLen: number, alg: string): Promise<Uint8Array> => {
+  if (keyLen !== 256) {
+    throw new Error(`Unsupported key length: ${keyLen}`);
+  }
+  const value = concat([
+    lengthAndInput(new TextEncoder().encode(alg)),
+    lengthAndInput(new Uint8Array(0)), // apu
+    lengthAndInput(new Uint8Array(0)), // apv
+    uint32be(keyLen),
+  ]);
+  // since our key lenght is 256 we only have to do one round
+  const roundNumber = 1;
+  return await sha256Raw(concat([uint32be(roundNumber), secret, value]));
 };

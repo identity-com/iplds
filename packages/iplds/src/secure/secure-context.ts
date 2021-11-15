@@ -1,11 +1,11 @@
 import { GetOptions, GetResult, PutOptions } from 'ipfs-core-types/src/dag';
 import { BlockCodec, CID, IPFSHTTPClient } from 'ipfs-http-client';
-import { encodeCOSE } from './cose-encrypt';
-import { Metadata } from './metadata';
-import { SCID } from './scid';
-import { SecureIPFS } from './secure-ipfs';
-import { CIDMetadata, Cose, ECKey, Key, Link, MetadataOrComplexObject } from './types';
-import { buildLinkObject, ComplexObject, links } from './utils';
+import { encodeCOSE } from '../cose/encrypt';
+import { Metadata } from '../types/metadata';
+import { SCID } from '../types/scid';
+import { SecureIPFS } from '../types/secure-ipfs';
+import { CIDMetadata, Cose, ECKey, Key, Link, MetadataOrComplexObject } from '../types/types';
+import { buildLinkObject, ComplexObject, links } from '../utils/utils';
 import { IWallet } from './wallet';
 
 export class SecureContext {

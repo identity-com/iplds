@@ -1,7 +1,7 @@
-import { CID } from 'ipfs-http-client';
 import { JWK } from '@identity.com/jwk';
+import { CID } from 'ipfs-http-client';
+import { ComplexObject } from '../utils/utils';
 import { Metadata } from './metadata';
-import { ComplexObject } from './utils';
 
 export type Key = Uint8Array;
 export type ECKey = JWK;

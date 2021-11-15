@@ -1,17 +1,17 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 /* eslint-disable @typescript-eslint/no-non-null-assertion */
+import { ECDHCurve, generateKeyPair } from '@identity.com/jwk';
 import { randomBytes } from '@stablelib/random';
 import * as fs from 'fs';
 import { BlockCodec, create, IPFSHTTPClient } from 'ipfs-http-client';
-import { generateKeyPair, ECDHCurve } from '@identity.com/jwk';
-import { decrypt, translate } from '../src/cose-decrypt';
-import { createECKey, decryptAES } from '../src/crypto';
-import { Metadata } from '../src/metadata';
-import { SCID } from '../src/scid';
-import { SecureContext } from '../src/secure-context';
-import { SecureIPFS } from '../src/secure-ipfs';
-import { Cose, ECKey, Key } from '../src/types';
-import { IWallet, Wallet } from '../src/wallet/wallet';
+import { decrypt, translate } from '../src/cose/decrypt';
+import { createECKey, decryptAES } from '../src/crypto/crypto';
+import { SecureContext } from '../src/secure/secure-context';
+import { IWallet, Wallet } from '../src/secure/wallet';
+import { Metadata } from '../src/types/metadata';
+import { SCID } from '../src/types/scid';
+import { SecureIPFS } from '../src/types/secure-ipfs';
+import { Cose, ECKey, Key } from '../src/types/types';
 import { SAMPLE_JSON } from './fixtures/data-fixture';
 
 describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: string) => {

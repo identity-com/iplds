@@ -1,10 +1,10 @@
+import { jwkPublicToRaw, X25519JWK } from '@identity.com/jwk';
 import { sharedKey } from '@stablelib/x25519';
-import { jwkPublicToRaw } from '@identity.com/jwk';
 
 describe('ECDH with X25519', () => {
   // (https://datatracker.ietf.org/doc/html/rfc8037#appendix-A.6)
   it('should generate a shared secret equal to RFC8037', () => {
-    const receiverPublicJWK = {
+    const receiverPublicJWK: X25519JWK = {
       kty: 'OKP',
       crv: 'X25519',
       kid: 'Bob',

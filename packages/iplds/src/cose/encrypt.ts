@@ -1,7 +1,7 @@
 import { encode } from 'cborg';
-import { translateHeaders, translateKey } from './cose-js/common';
-import { ALG_ENCRYPTION, ALG_KEY_AGREEMENT, encryptAES, generateIV, keyAgreement } from './crypto';
-import { Cose, ECKey, Key, Recipient, Recipients } from './types';
+import { ALG_ENCRYPTION, ALG_KEY_AGREEMENT, encryptAES, generateIV, keyAgreement } from '../crypto/crypto';
+import { Cose, ECKey, Key, Recipient, Recipients } from '../types/types';
+import { translateHeaders, translateKey } from './common';
 
 export const encryptToCOSE = async function (bytes: Uint8Array, key: Key, recipient: ECKey): Promise<Cose> {
   const agreement = await keyAgreement(recipient, key);

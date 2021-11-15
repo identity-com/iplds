@@ -1,5 +1,5 @@
 import { CID } from 'ipfs-http-client';
-import { Link, Recipient } from './types';
+import { Link, Recipient } from '../types/types';
 
 const collectCIDsFromArray = function* (
   value: Record<string, unknown>[],
@@ -50,17 +50,6 @@ export const links = function* (
       }
     }
   }
-};
-
-export const concat = (...buffers: Uint8Array[]): Uint8Array => {
-  const size = buffers.reduce((acc, { length }) => acc + length, 0);
-  const buf = new Uint8Array(size);
-  let offset = 0;
-  buffers.forEach((buffer) => {
-    buf.set(buffer, offset);
-    offset += buffer.length;
-  });
-  return buf;
 };
 
 export type ComplexObject = null | { [key: string]: ComplexObject };

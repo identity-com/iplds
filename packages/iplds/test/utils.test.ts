@@ -1,8 +1,8 @@
 import { CID } from 'ipfs-http-client';
 import { sha256 } from 'multiformats/hashes/sha2';
-import { createAESGCMKey, decryptAES, encryptAES, generateIV } from '../src/crypto';
-import { Link } from '../src/types';
-import { buildLinkObject, links } from '../src/utils';
+import { createAESGCMKey, decryptAES, encryptAES, generateIV } from '../src/crypto/crypto';
+import { Link } from '../src/types/types';
+import { buildLinkObject, links } from '../src/utils/utils';
 import { SAMPLE_JSON } from './fixtures/data-fixture';
 
 describe('AES', () => {
