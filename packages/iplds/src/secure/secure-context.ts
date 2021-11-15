@@ -1,27 +1,44 @@
+import { jwkPublicToRaw } from '@identity.com/jwk';
 import { GetOptions, GetResult, PutOptions } from 'ipfs-core-types/src/dag';
 import { BlockCodec, CID, IPFSHTTPClient } from 'ipfs-http-client';
+import { sha256Raw } from '..';
 import { encodeCOSE } from '../cose/encrypt';
 import { Metadata } from '../types/metadata';
 import { SCID } from '../types/scid';
 import { SecureIPFS } from '../types/secure-ipfs';
-import { CIDMetadata, Cose, ECKey, Key, Link, MetadataOrComplexObject } from '../types/types';
+import { CIDMetadata, Cose, DeduplicationContext, ECKey, Key, Link, MetadataOrComplexObject } from '../types/types';
 import { buildLinkObject, ComplexObject, links } from '../utils/utils';
 import { IWallet } from './wallet';
 
 export class SecureContext {
   // maps CID to CIDMetadata
   private readonly context: Map<string, CIDMetadata> = new Map();
-  private readonly deduplicationSecret?: Uint8Array;
 
-  constructor(private readonly wallet: IWallet<ECKey, Key>, deduplicationSecret?: Uint8Array) {
-    if (!deduplicationSecret) {
-      return;
+  private constructor(
+    private readonly wallet: IWallet<ECKey, Key>,
+    private readonly deduplicationSecret?: Uint8Array,
+  ) {}
+
+  static async create(wallet: IWallet<ECKey, Key>, deduplication: DeduplicationContext = true): Promise<SecureContext> {
+    return new SecureContext(wallet, await SecureContext.getDeduplicationSecret(deduplication, wallet.publicKey));
+  }
+
+  private static async getDeduplicationSecret(
+    deduplication: DeduplicationContext,
+    publicKey: ECKey,
+  ): Promise<Uint8Array | undefined> {
+    if (typeof deduplication === 'boolean') {
+      if (!deduplication) {
+        return undefined;
+      }
+
+      return await sha256Raw(jwkPublicToRaw(publicKey, false));
     }
-    if (deduplicationSecret.length < 16) {
+    if (deduplication.secret.length < 16) {
       throw new Error('Too short deduplication secret. Deduplication secret must be at least 16 bytes');
     }
 
-    this.deduplicationSecret = deduplicationSecret.slice(0); // copy
+    return deduplication.secret;
   }
 
   public secure(ipfs: IPFSHTTPClient): SecureIPFS {

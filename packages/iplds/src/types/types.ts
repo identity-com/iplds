@@ -54,3 +54,5 @@ export type AESEncryption = {
 };
 
 export type Dictionary<T> = Record<string, T>;
+
+export type DeduplicationContext = boolean | { secret: Uint8Array };
