@@ -4,36 +4,47 @@ import { convertPublicKey as ed2x25519 } from 'ed2curve-esm';
 import { toJWK as exportJWK, JWK } from '@identity.com/jwk';
 
 export class DIDKeyResolver {
-  public resolveKey = (did: DIDDocument, kid: string): JWK => {
-    const verificationMethod: VerificationMethod | undefined = this.keyAgreementVerificationMethod(did, kid);
+  public resolveKey = (did: DIDDocument, kid?: string): JWK => {
+    const verificationMethod = this.keyAgreementVerificationMethod(did, kid);
 
     if (!verificationMethod) {
-      throw new Error(`Couldn't resolve public key for DID [${did.id}] with kid [${kid}]`);
+      throw new Error(`Couldn't resolve public key for DID [${did.id}] with kid [${kid ?? 'undefined'}]`);
     }
 
     return this.extractJWK(verificationMethod);
   };
 
-  private keyAgreementVerificationMethod(did: DIDDocument, kid: string): VerificationMethod | undefined {
-    let verificationMethods: VerificationMethod[] | undefined = [];
-
-    if (this.hasKeyAgreements(did)) {
-      verificationMethods = did.keyAgreement?.map((agreement) => this.resolveVerificationMethod(did, agreement));
-    } else if (this.hasCapabilityInvocations(did)) {
-      verificationMethods = did.capabilityInvocation?.map((capability) =>
-        this.resolveVerificationMethod(did, capability),
-      );
+  private keyAgreementVerificationMethod(did: DIDDocument, kid?: string): VerificationMethod | null {
+    const verificationMethods: VerificationMethod[] | undefined = this.getVerificationMethods(did);
+    if (verificationMethods.length === 0) {
+      return null;
     }
 
-    return verificationMethods?.find((v) => v.id === kid);
+    if (!kid) {
+      if (verificationMethods.length > 1) {
+        throw new Error('More than one key found in DID. Please specify "kid" parameter');
+      }
+      return verificationMethods[0];
+    }
+
+    return verificationMethods.find((v) => v.id === kid) ?? null;
   }
 
-  private hasCapabilityInvocations(did: DIDDocument): boolean | undefined {
-    return did.capabilityInvocation && did.capabilityInvocation.length > 0;
+  private getVerificationMethods(did: DIDDocument): VerificationMethod[] {
+    if (this.hasKeyAgreements(did)) {
+      return did.keyAgreement?.map((agreement) => this.resolveVerificationMethod(did, agreement)) ?? [];
+    } else if (this.hasCapabilityInvocations(did)) {
+      return did.capabilityInvocation?.map((capability) => this.resolveVerificationMethod(did, capability)) ?? [];
+    }
+    return [];
   }
 
-  private hasKeyAgreements(did: DIDDocument): boolean | undefined {
-    return did.keyAgreement && did.keyAgreement.length > 0;
+  private hasCapabilityInvocations(did: DIDDocument): boolean {
+    return (did.capabilityInvocation?.length ?? 0) > 0;
+  }
+
+  private hasKeyAgreements(did: DIDDocument): boolean {
+    return (did.keyAgreement?.length ?? 0) > 0;
   }
 
   private resolveVerificationMethod(did: DIDDocument, keyAgreement: string | VerificationMethod): VerificationMethod {

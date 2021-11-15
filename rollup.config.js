@@ -26,7 +26,7 @@ export const buildConfig = ({ pkg, plugins }) => ({
     {
       file: pkg.main,
       format: 'cjs',
-      sourcemap: isProduction,
+      sourcemap: true,
     },
   ],
   plugins: plugins ?? buildPluginsSection(),

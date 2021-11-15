@@ -1,8 +1,8 @@
 import { jwkPublicToRaw } from '@identity.com/jwk';
 import { GetOptions, GetResult, PutOptions } from 'ipfs-core-types/src/dag';
 import { BlockCodec, CID, IPFSHTTPClient } from 'ipfs-http-client';
-import { sha256Raw } from '..';
 import { encodeCOSE } from '../cose/encrypt';
+import { sha256Raw } from '../crypto/crypto';
 import { Metadata } from '../types/metadata';
 import { SCID } from '../types/scid';
 import { SecureIPFS } from '../types/secure-ipfs';

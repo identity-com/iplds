@@ -9,7 +9,7 @@ const JWK_TO_ELLIPTIC_CURVE_NAMES: Record<ECDHCurve, string> = {
   X25519: 'X25519',
 };
 
-const base64 = encoding('base64urlpad');
+const base64 = encoding('base64url');
 
 const ENC_UNCOMPRESSED = 4;
 

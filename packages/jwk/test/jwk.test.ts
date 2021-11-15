@@ -17,7 +17,7 @@ const CRV_ALG: Record<ECDHCurve, string> = {
 
 const crypto = new Crypto();
 
-const base64 = encoding('base64urlpad');
+const base64 = encoding('base64url');
 
 const createECKey = async (namedCurve: ECDHCurve): Promise<Uint8Array> => {
   const keyPair = await crypto.subtle.generateKey(
@@ -59,7 +59,7 @@ describe('JWK Utils', () => {
   const x25519PublicRaw = encoding('base16').decode(
     cleanSpaces('85 20 f0 09 89 30 a7 54 74 8b 7d dc b4 3e f7 5a 0d bf 3a 0d 26 38 1a f4 eb a4 a9 8e aa 9b 4e 6a'),
   );
-  const x25519PublicJWK: X25519JWK = { kty: 'OKP', crv: 'X25519', x: 'hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo=' };
+  const x25519PublicJWK: X25519JWK = { kty: 'OKP', crv: 'X25519', x: 'hSDwCYkwp1R0i33ctD73Wg2_Og0mOBr066SpjqqbTmo' };
 
   it('should convert x25519 key to JWK (RFC 8037)', () => {
     expect(exportJWK(x25519PublicRaw, 'X25519')).toStrictEqual(x25519PublicJWK);

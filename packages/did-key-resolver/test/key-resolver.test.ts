@@ -59,9 +59,8 @@ describe('Solana key resolver', () => {
     // await update(request);
 
     const did = await resolve(didId);
-    console.log(did);
     const jwk = new DIDKeyResolver().resolveKey(did, `${didId}#delegate1`);
-    expect(jwk.x).toStrictEqual(encoding('base64urlpad').encode(keyAgreementPublicKey));
+    expect(jwk.x).toStrictEqual(encoding('base64url').encode(keyAgreementPublicKey));
   });
 });
 

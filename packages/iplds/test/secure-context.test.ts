@@ -186,9 +186,9 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
 
   it('should get content from decrypted Cose', async () => {
     const cid = await secure.put(SAMPLE_JSON);
-    const cose = await secure.share(cid, alice.publicKey);
+    const scid = await secure.share(cid, alice.publicKey);
 
-    const json = await secure.get(cose);
+    const json = await secure.get(scid);
 
     expect(json.value).toStrictEqual(SAMPLE_JSON);
   });

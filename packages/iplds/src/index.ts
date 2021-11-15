@@ -4,3 +4,4 @@ export * from './secure/secure-context';
 export * from './secure/wallet';
 export * from './types/scid';
 export * from './types/secure-ipfs';
+export { DeduplicationContext } from './types/types';
