@@ -5,8 +5,7 @@ import { CID, create, IPFSHTTPClient } from 'ipfs-http-client';
 import { DIDSecureContext, DIDSecureIPFS } from '../src';
 import { didDocument, toBase58 } from './did.helper';
 
-describe.each([['X25519']])('DID Secure Context: %s', (curve: string) => {
-  let aliceKeyPair: JWK;
+describe.each([['X25519' as ECDHCurve]])('DID Secure Context: %s', (curve) => {
   let alice: IWallet<JWK, Uint8Array>;
   let bob: IWallet<JWK, Uint8Array>;
   let ctx: DIDSecureContext;
@@ -18,9 +17,8 @@ describe.each([['X25519']])('DID Secure Context: %s', (curve: string) => {
   });
 
   beforeEach(() => {
-    aliceKeyPair = generateKeyPair(curve as ECDHCurve);
-    alice = Wallet.from(aliceKeyPair);
-    bob = Wallet.from(generateKeyPair(curve as ECDHCurve));
+    alice = Wallet.from(generateKeyPair(curve));
+    bob = Wallet.from(generateKeyPair(curve));
   });
 
   describe('with DID Document', () => {
