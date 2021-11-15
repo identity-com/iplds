@@ -1,5 +1,6 @@
 import { CID } from 'ipfs-http-client';
 import { SCID, SecureDAG } from '@identity.com/iplds';
+import { DIDDocument } from 'did-resolver';
 
 export type Reciever = {
   did?: string;
