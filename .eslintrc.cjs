@@ -58,6 +58,12 @@ module.exports = {
         allowTypedFunctionExpressions: true,
       },
     ],
+    'prettier/prettier': [
+      'error',
+      {
+        'endOfLine': 'auto'
+      },
+    ],
 
     // eslint:recommended additional rules & best practices
     'no-extra-parens': 'error',
