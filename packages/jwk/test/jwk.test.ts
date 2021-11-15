@@ -1,5 +1,5 @@
 import { Crypto } from '@peculiar/webcrypto';
-import { toJWK as exportJWK, jwkPublicToRaw } from '../src/jwk';
+import { toJWK as exportJWK, jwkPublicToRaw, JWK_TO_ELLIPTIC_CURVE_NAMES } from '../src/jwk';
 import { ECDHCurve, X25519JWK } from '../src/types';
 import { encoding } from 'multibase';
 import { ec as EC } from 'elliptic';
@@ -38,8 +38,10 @@ describe('JWK Utils', () => {
     const publicKeyHex = '0x0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
 
     const publicKey = encoding('base16').decode(preformatHex(publicKeyHex));
+    const publicKeyWithoutCompressedEncoding = publicKey.slice(1);
+
     const jwk = exportJWK(publicKey, 'K-256');
-    expect(base64.decode(jwk.x)).toStrictEqual(publicKey.slice(1));
+    expect(base64.decode(jwk.x)).toStrictEqual(publicKeyWithoutCompressedEncoding);
   });
 
   const k256PublicKey = Uint8Array.from([
@@ -69,39 +71,21 @@ describe('JWK Utils', () => {
     expect(jwkPublicToRaw(x25519PublicJWK)).toStrictEqual(x25519PublicRaw);
   });
 
-  it('should be compatible with webcrypto@P256', async () => {
-    const p256PublicKey = await createECKey('P-256');
-    expect(jwkPublicToRaw(exportJWK(p256PublicKey, 'P-256'), false, true)).toStrictEqual(p256PublicKey);
+  it.each([['P-256'], ['K-256'], ['X25519']])('should be compatible with webcrypto@%s', async (curveName: string) => {
+    const curve = curveName as ECDHCurve;
+    const publicKey = await createECKey(curve);
+    expect(jwkPublicToRaw(exportJWK(publicKey, curve), false, true)).toStrictEqual(publicKey);
   });
 
-  it('should be compatible with webcrypto@K256', async () => {
-    const k256PublicKey = await createECKey('K-256');
-    expect(jwkPublicToRaw(exportJWK(k256PublicKey, 'K-256'), false, true)).toStrictEqual(k256PublicKey);
-  });
-
-  it('should be compatible with webcrypto@K256', async () => {
-    const x25519PublicKey = await createECKey('X25519');
-    expect(jwkPublicToRaw(exportJWK(x25519PublicKey, 'X25519'), false, true)).toStrictEqual(x25519PublicKey);
-  });
-
-  it('should compresses same as elliptic on p-256', () => {
-    const ec = new EC('p256');
-    const uncompressedPublicKey = Uint8Array.from([4, ...k256PublicKey]);
+  it.each([['P-256'], ['K-256']])('should compress as elliptic on %s', (curveName: string) => {
+    const curve = curveName as ECDHCurve;
+    const ec = new EC(JWK_TO_ELLIPTIC_CURVE_NAMES[curve]);
+    const uncompressedPublicKey = Uint8Array.from([4, ...k256PublicKey]); // same key, actually, works on both P-256 and K-256
     const compressedEllipticKey = Uint8Array.from(
       ec.keyFromPublic(uncompressedPublicKey).getPublic().encode('array', true),
     );
 
-    expect(jwkPublicToRaw(exportJWK(uncompressedPublicKey, 'P-256'), true)).toStrictEqual(compressedEllipticKey);
-  });
-
-  it('should compresses same as elliptic on k-256', () => {
-    const ec = new EC('secp256k1');
-    const uncompressedPublicKey = Uint8Array.from([4, ...k256PublicKey]);
-    const compressedEllipticKey = Uint8Array.from(
-      ec.keyFromPublic(uncompressedPublicKey).getPublic().encode('array', true),
-    );
-
-    expect(jwkPublicToRaw(exportJWK(uncompressedPublicKey, 'K-256'), true)).toStrictEqual(compressedEllipticKey);
+    expect(jwkPublicToRaw(exportJWK(uncompressedPublicKey, curve), true)).toStrictEqual(compressedEllipticKey);
   });
 });
 

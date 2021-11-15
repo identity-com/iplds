@@ -3,7 +3,7 @@ import { generateKeyPair as generateX25519KeyPair } from '@stablelib/x25519';
 import { EC256, JWK, ECDHCurve, EC256JWK, X25519JWK } from './types';
 import { encoding } from 'multibase';
 
-const JWK_TO_ELLIPTIC_CURVE_NAMES: Record<ECDHCurve, string> = {
+export const JWK_TO_ELLIPTIC_CURVE_NAMES: Record<ECDHCurve, string> = {
   'K-256': 'secp256k1',
   'P-256': 'p256',
   X25519: 'X25519',
