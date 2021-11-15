@@ -4,11 +4,9 @@
     "src",
   ],
   "compilerOptions": {
-    "allowJs": true,
-    "checkJs": false,
+    "allowJs": false,
     "baseUrl": ".",
     "allowSyntheticDefaultImports": true,
-    "rootDir": "./src",
     "outDir": "dist",
   }
 }

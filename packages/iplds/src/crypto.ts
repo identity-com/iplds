@@ -9,9 +9,8 @@ import { randomBytes } from '@stablelib/random';
 import { sharedKey } from '@stablelib/x25519';
 import { ec as EC } from 'elliptic';
 import { generateKeyPair, jwkPrivateToRaw, jwkPublicToRaw, sanitizePublicKey } from '../../jwk/src/jwk';
-import { concatKdf, lengthAndInput, uint32be } from './buffer-utils';
+import { concatKDF } from './buffer-utils';
 import { ECKey, Key, KeyAgreement, Recipient } from './types';
-import { concat } from './utils';
 
 const IV_BITS = 96;
 export const IV_BYTES = IV_BITS / 8;
@@ -20,7 +19,6 @@ export const ALG_ENCRYPTION = 'A256GCM';
 export const ALG_KEY_AGREEMENT = 'ECDH-ES+A256KW'; // -31: https://datatracker.ietf.org/doc/html/rfc8152#section-12.5.1
 
 const crypto = new Crypto();
-const encoder = new TextEncoder();
 const base64 = new URLSafeCoder();
 
 export const createECKey = async (crv: ECDHCurve = 'X25519'): Promise<ECKey> => {
@@ -57,19 +55,10 @@ export const deriveKey = async (
   privateKey: ECKey,
   algorithm: string,
   keyLength: number,
-  apu = new Uint8Array(0),
-  apv = new Uint8Array(0),
 ): Promise<Key> => {
-  const value = concat(
-    lengthAndInput(encoder.encode(algorithm)),
-    lengthAndInput(apu),
-    lengthAndInput(apv),
-    uint32be(keyLength),
-  );
-
   const sharedSecret = getSharedSecret(publicKey, privateKey);
 
-  return await concatKdf(digest, sharedSecret, keyLength, value);
+  return await concatKDF(digest, sharedSecret, keyLength, algorithm);
 };
 
 const ELLIPTIC_CURVE_MAP: Record<EC256, string> = {

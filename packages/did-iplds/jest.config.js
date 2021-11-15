@@ -5,6 +5,4 @@ module.exports = {
   ...baseConfig,
   name: packageJson.name,
   displayName: packageJson.name,
-  setupFiles: ['./jest.crypto-setup.js'],
-  testTimeout: 60000,
 };

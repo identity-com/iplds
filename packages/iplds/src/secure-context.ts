@@ -14,13 +14,14 @@ export class SecureContext {
   private readonly deduplicationSecret?: Uint8Array;
 
   constructor(private readonly wallet: IWallet<ECKey, Key>, deduplicationSecret?: Uint8Array) {
-    if (deduplicationSecret) {
-      if (deduplicationSecret.length < 16) {
-        throw new Error('Too short deduplication secret. Deduplication secret must be at least 16 bytes');
-      }
-
-      this.deduplicationSecret = deduplicationSecret.slice(0); // copy
+    if (!deduplicationSecret) {
+      return;
     }
+    if (deduplicationSecret.length < 16) {
+      throw new Error('Too short deduplication secret. Deduplication secret must be at least 16 bytes');
+    }
+
+    this.deduplicationSecret = deduplicationSecret.slice(0); // copy
   }
 
   public secure(ipfs: IPFSHTTPClient): SecureIPFS {

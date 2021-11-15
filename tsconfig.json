@@ -5,10 +5,10 @@
     "baseUrl": "./packages",
     "typeRoots": ["./node_modules/@types"],
     "paths": {
-      "@identity.com/secure-context": ["secure-context/src"],
+      "@identity.com/iplds": ["iplds/src"],
       "@identity.com/jwk": ["jwk/src"],
       "@identity.com/did-key-resolver": ["did-key-resolver/src"],
-      "@identity.com/iplds": ["iplds/src"],
+      "@identity.com/did-iplds": ["did-iplds/src"],
     }
   }
 }

@@ -17,24 +17,24 @@ export const uint32be = (value: number): Uint8Array => {
 
 export const lengthAndInput = (input: Uint8Array): Uint8Array => concat(uint32be(input.length), input);
 
-export const concatKdf = async (
+// Implementation from:
+// https://github.com/decentralized-identity/did-jwt
+export const concatKDF = async (
   digest: (alg: string, data: BufferSource) => Promise<Uint8Array>,
   secret: Uint8Array,
-  bits: number,
-  value: Uint8Array,
+  keyLen: number,
+  alg: string,
 ): Promise<Uint8Array> => {
-  const iterations = Math.ceil((bits >> 3) / 32);
-  let res = Uint8Array.of();
-  for (let iter = 1; iter <= iterations; iter++) {
-    const buf = new Uint8Array(4 + secret.length + value.length);
-    buf.set(uint32be(iter));
-    buf.set(secret, 4);
-    buf.set(value, 4 + secret.length);
-    if (res.length === 0) {
-      res = await digest('sha256', buf);
-    } else {
-      res = concat(res, await digest('sha256', buf));
-    }
+  if (keyLen !== 256) {
+    throw new Error(`Unsupported key length: ${keyLen}`);
   }
-  return res.slice(0, bits >> 3);
+  const value = concat(
+    lengthAndInput(new TextEncoder().encode(alg)),
+    lengthAndInput(new Uint8Array(0)), // apu
+    lengthAndInput(new Uint8Array(0)), // apv
+    uint32be(keyLen),
+  );
+  // since our key lenght is 256 we only have to do one round
+  const roundNumber = 1;
+  return await digest('sha256', concat(uint32be(roundNumber), secret, value));
 };
