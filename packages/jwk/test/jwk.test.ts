@@ -3,6 +3,7 @@ import { toJWK as exportJWK, jwkPublicToRaw, JWK_TO_ELLIPTIC_CURVE_NAMES } from 
 import { ECDHCurve, X25519JWK } from '../src/types';
 import { encoding } from 'multibase';
 import { ec as EC } from 'elliptic';
+import { convertPublicKey } from 'ed2curve-esm';
 
 const cleanSpaces = (hexStr: string): string => hexStr.replace(/\s/g, '');
 
@@ -86,6 +87,12 @@ describe('JWK Utils', () => {
     );
 
     expect(jwkPublicToRaw(exportJWK(uncompressedPublicKey, curve), true)).toStrictEqual(compressedEllipticKey);
+  });
+  it('converts ed2x', () => {
+    const publicKey = encoding('base58btc').decode('2CGCTroGewFq5cKAvP7rjAf7CHveHTuvpmjAc3NmH5H7');
+    const x25519Public = convertPublicKey(publicKey);
+
+    expect(x25519Public).not.toBeNull();
   });
 });
 
