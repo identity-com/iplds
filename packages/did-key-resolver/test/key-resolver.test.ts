@@ -62,6 +62,28 @@ describe('Solana key resolver', () => {
     const jwk = new DIDKeyResolver().resolveKey(did, `${didId}#delegate1`);
     expect(jwk.x).toStrictEqual(encoding('base64url').encode(keyAgreementPublicKey));
   });
+
+  it('should find key in capabilityInvocation[] section', async () => {
+    const publicKeyBase58 = '2CGCTroGewFq5cKAvP7rjAf7CHveHTuvpmjAc3NmH5H7';
+    const did = `did:sol:${publicKeyBase58}`;
+    const doc = await resolve(did);
+    const jwk = new DIDKeyResolver().resolveKey(doc, `${did}#default`);
+    const resolvedPublicKey = encoding('base64url').decode(jwk.x);
+    expect(resolvedPublicKey).toHaveLength(32);
+  });
+
+  it('should convert the key from Ed25519 to X25519', async () => {
+    const publicKeyBase58 = '2CGCTroGewFq5cKAvP7rjAf7CHveHTuvpmjAc3NmH5H7';
+    const keyAgreementPublicKey = encoding('base58btc').decode(publicKeyBase58);
+    const did = `did:sol:${publicKeyBase58}`;
+    const doc = await resolve(did);
+    const jwk = new DIDKeyResolver().resolveKey(doc, `${did}#default`);
+
+    expect(jwk.crv).toStrictEqual('X25519');
+
+    const resolvedPublicKey = encoding('base64url').decode(jwk.x);
+    expect(resolvedPublicKey).not.toStrictEqual(keyAgreementPublicKey);
+  });
 });
 
 /*
