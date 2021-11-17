@@ -45,6 +45,9 @@
     "@size-limit/preset-small-lib": "^5.0.4",
     "@types/elliptic": "^6.4.14",
     "electron": "^15.3.0",
+    "ethers": "^5.5.1",
+    "ethr-did": "^2.1.5",
+    "ethr-did-resolver": "^5.0.2",
     "size-limit": "^5.0.4",
     "tslib": "^2.2.0",
     "tweetnacl": "^1.0.3"

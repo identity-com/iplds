@@ -1,6 +1,8 @@
 import { resolve } from '@identity.com/sol-did-client';
 import { encoding } from 'multibase';
 import { DIDKeyResolver } from '../src/key-resolver';
+import { Resolver } from 'did-resolver';
+import ethr from 'ethr-did-resolver';
 
 describe('Solana key resolver', () => {
   it('should resolve key from a sample DID', async () => {
@@ -22,7 +24,7 @@ describe('Solana key resolver', () => {
     const publicKeyBase58 = 'CDbBA74pK4QH7wXc7JhW8zpkfzgApEugoSGa1Zz7FNPR';
     const keyAgreementPublicKey = base58.decode(publicKeyBase58);
 
-    const didId = `did:sol:devnet:${controllerPublicBase58}`;
+    const did = `did:sol:devnet:${controllerPublicBase58}`;
 
     // update a DID
     // const request = {
@@ -58,8 +60,8 @@ describe('Solana key resolver', () => {
     // };
     // await update(request);
 
-    const did = await resolve(didId);
-    const jwk = new DIDKeyResolver().resolveKey(did, `${didId}#delegate1`);
+    const didDocument = await resolve(did);
+    const jwk = new DIDKeyResolver().resolveKey(didDocument, `${did}#delegate1`);
     expect(jwk.x).toStrictEqual(encoding('base64url').encode(keyAgreementPublicKey));
   });
 
@@ -117,3 +119,55 @@ describe('Solana key resolver', () => {
       ]
     }
 */
+
+describe('ETHR key resolver', () => {
+  it('should resolve key on a testnet', async () => {
+    const providerConfig = {
+      name: '0x4',
+      rpcUrl: 'https://rinkeby.infura.io/v3/38bae4dd55b942c98e1df206a33f53a5',
+    };
+    const ethrDidResolver = ethr.getResolver(providerConfig);
+    const didResolver = new Resolver(ethrDidResolver);
+
+    const address = '0x420A68929B22bf8A17897f2ca7e3807Bd1D53508';
+
+    // const provider = new ethers.providers.JsonRpcProvider('https://rinkeby.infura.io/v3/38bae4dd55b942c98e1df206a33f53a5');
+    // const keyPair = EthrDID.createKeyPair();
+    // console.log(`ethr[addr]: ${keyPair.privateKey}`);
+    // console.log(`ethr[pub]: ${keyPair.publicKey}`);
+    // console.log(`ethr[addr]: ${keyPair.address}`);
+    // console.log(`ethr[identifier]: ${keyPair.identifier}`);
+    // const publicKey = '0x0383529b3665c5dd455f9354929c345c8e3ebafe1d5ee79fb45f5f4a1367aa34e5'; // identifier too
+    // const privateKey = '0xe285785b07bfa96d9cb14e58c90522a5c32ccc5575b2fd1b7555b854e9399bd6';
+    // const wallet = new ethers.Wallet(privateKey, provider);
+    // const ethrDid = new EthrDID({
+    //   identifier: publicKey,
+    //   provider,
+    //   txSigner: wallet,
+    // });
+
+    // const keyAgreementPair = nacl.box.keyPair();
+    // const base58 = encoding('base58btc');
+    // const kxPriv = 'cf732e388858d5d437cda035b466829b4dec2700491112c02bddade8c3edc899';
+    // console.log(`kx[priv]: ${hex.encode(keyAgreementPair.secretKey)}`);
+    // console.log(`kx[pub]: ${hex.encode(keyAgreementPair.publicKey)}`);
+
+    // did/pub/(Secp256k1|RSA|Ed25519|X25519)/(veriKey|sigAuth|enc)/(hex|base64|base58)
+    /*
+    const res = await ethrDid.setAttribute(
+        `did/pub/X25519/${DelegateTypes.enc}/base58`,
+        base58.encode(kxPub),
+      );
+    */
+    const hex = encoding('base16');
+    const kxPub = hex.decode('cb67626f06ae86f8bdf5ecb23d66d823459c76957534324d39fee795e613c911');
+    const did = `did:ethr:${providerConfig.name}:${address}`;
+
+    const didDocument = (await didResolver.resolve(did)).didDocument!;
+
+    const kid = `${did}#delegate-4`; // '#delegate-4' suffix is specific to the test case
+    const jwk = new DIDKeyResolver().resolveKey(didDocument, kid);
+
+    expect(encoding('base64urlpad').decode(jwk.x)).toStrictEqual(kxPub);
+  }, 20000);
+});
