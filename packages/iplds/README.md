@@ -1,13 +1,30 @@
 # IPLDS - Secure DAG storage
 
-The main goal of this library is to provide a mechanism for storing DAGs securely on IPFS, while being able to share any piece (subgraph) of that with an arbitrary recipient.
+## Introduction
 
-This library relies on two existing specifications namely CBOR and COSE with some additional features designed for sensitive data storage applicability.
+The main goal of this library is to provide a mechanism for storing (and reading) DAGs securely on IPFS, while being able to share any piece (subgraph) of that with an arbitrary recipient.
+
+This library relies on two existing specifications namely CBOR and COSE with some additional features designed for sensitive data storage.
 While CBOR is designed for a fairly small message size, the COSE object structures are built on the CBOR array type and designed to allow better code
 reusability when parsing and processing the different types of [security messages](https://tools.ietf.org/html/rfc8152#section-2).
 The COSE specification additionally describes how to represent cryptographic keys using CBOR.
 
-The library adheres some interfaces from [js-multiformats](https://github.com/multiformats/js-multiformats) for better compatibility.
+The library adheres to some interfaces from [js-multiformats](https://github.com/multiformats/js-multiformats) for better compatibility.
+
+## Structure
+
+The main entities are:
+- [SecureContext](src/secure/secure-context.ts): An enveloping entity initialized with the Sender's key pair, keeping track of the persisted, secured nodes of the DAG within a given session
+  - As the data stored is encrypted with symmetrical keys, SecureContext's main structure is a Map between CIDs of a stored node and the CIDMetadata, containing the node's encryption key and links to the node's children
+- [SecureIPFS](src/types/secure-ipfs.ts): An entity capable of putting/getting and sharing with a given Receiver the encrypted&encoded DAG
+  - To store a node it is first encrypted with a symmetric key
+  - To share the node with a given Receiver, the node's symmetric key is wrapped by using ECDH-ES+A256KW
+- [IWallet](src/secure/wallet.ts): An entity abstracting cryptography operations required by the protocol
+  - Currently used primitives are AES256GCM, AES256KW and ECDH-ES on (NIST) P-256, K-256 (secp256k1) and X25519 curves
+  - The [IWallet](src/secure/wallet.ts) interface provides an abstraction, but current implementation works in both Node and browsers, using:
+    - [Elliptic] for P-256 and K-256
+    - [stable-lib] for X25519 and AES* operations
+    - [peculiar/webcrypyo] for digest (TODO: ??)
 
 ## Installation
 
