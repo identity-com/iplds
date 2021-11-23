@@ -3,7 +3,6 @@ import { generateKeyPair, jwkPrivateToRaw, jwkPublicToRaw, sanitizePublicKey } f
 import { Crypto } from '@peculiar/webcrypto';
 import { AES } from '@stablelib/aes';
 import { AESKW } from '@stablelib/aes-kw';
-import { URLSafeCoder } from '@stablelib/base64';
 import { GCM } from '@stablelib/gcm';
 import { decode, encode } from '@stablelib/hex';
 import { randomBytes } from '@stablelib/random';
@@ -11,6 +10,7 @@ import { sharedKey } from '@stablelib/x25519';
 import { ec as EC } from 'elliptic';
 import { concat } from 'uint8arrays/concat';
 import { ECKey, Key, KeyAgreement, Recipient } from '../types/types';
+import { encoding } from 'multibase';
 
 const IV_BITS = 96;
 const MAX_INT32 = 2 ** 32;
@@ -25,7 +25,7 @@ const ELLIPTIC_CURVE_MAP: Record<EC256, string> = {
   'P-256': 'p256',
 };
 const crypto = new Crypto();
-const base64 = new URLSafeCoder();
+const base64 = encoding('base64url');
 
 export const createECKey = async (crv: ECDHCurve = 'X25519'): Promise<ECKey> => {
   return await Promise.resolve(generateKeyPair(crv));
