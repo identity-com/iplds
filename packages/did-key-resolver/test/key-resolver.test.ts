@@ -4,10 +4,12 @@ import { DIDKeyResolver } from '../src/key-resolver';
 import { Resolver } from 'did-resolver';
 import ethr from 'ethr-did-resolver';
 
+const base58 = encoding('base58btc');
+const hex = encoding('base16');
+const base64 = encoding('base64url');
+
 describe('Solana key resolver', () => {
   it('should resolve key from a sample DID', async () => {
-    const base58 = encoding('base58btc');
-
     const controllerPublicBase58 = '2CGCTroGewFq5cKAvP7rjAf7CHveHTuvpmjAc3NmH5H7';
     // const keyPair = nacl.sign.keyPair(); airdropped to
     // const publicKey = base58.decode(controllerPublicBase58);
@@ -62,7 +64,7 @@ describe('Solana key resolver', () => {
 
     const didDocument = await resolve(did);
     const jwk = new DIDKeyResolver().resolveKey(didDocument, `${did}#delegate1`);
-    expect(jwk.x).toStrictEqual(encoding('base64url').encode(keyAgreementPublicKey));
+    expect(jwk.x).toStrictEqual(base64.encode(keyAgreementPublicKey));
   });
 
   it('should find key in capabilityInvocation[] section', async () => {
@@ -70,20 +72,20 @@ describe('Solana key resolver', () => {
     const did = `did:sol:${publicKeyBase58}`;
     const doc = await resolve(did);
     const jwk = new DIDKeyResolver().resolveKey(doc, `${did}#default`);
-    const resolvedPublicKey = encoding('base64url').decode(jwk.x);
+    const resolvedPublicKey = base64.decode(jwk.x);
     expect(resolvedPublicKey).toHaveLength(32);
   });
 
   it('should convert the key from Ed25519 to X25519', async () => {
     const publicKeyBase58 = '2CGCTroGewFq5cKAvP7rjAf7CHveHTuvpmjAc3NmH5H7';
-    const keyAgreementPublicKey = encoding('base58btc').decode(publicKeyBase58);
+    const keyAgreementPublicKey = base58.decode(publicKeyBase58);
     const did = `did:sol:${publicKeyBase58}`;
     const doc = await resolve(did);
     const jwk = new DIDKeyResolver().resolveKey(doc, `${did}#default`);
 
     expect(jwk.crv).toStrictEqual('X25519');
 
-    const resolvedPublicKey = encoding('base64url').decode(jwk.x);
+    const resolvedPublicKey = base64.decode(jwk.x);
     expect(resolvedPublicKey).not.toStrictEqual(keyAgreementPublicKey);
   });
 });
@@ -147,7 +149,7 @@ describe('ETHR key resolver', () => {
     // });
 
     // const keyAgreementPair = nacl.box.keyPair();
-    // const base58 = encoding('base58btc');
+    // const base58 = base58;
     // const kxPriv = 'cf732e388858d5d437cda035b466829b4dec2700491112c02bddade8c3edc899';
     // console.log(`kx[priv]: ${hex.encode(keyAgreementPair.secretKey)}`);
     // console.log(`kx[pub]: ${hex.encode(keyAgreementPair.publicKey)}`);
@@ -159,15 +161,15 @@ describe('ETHR key resolver', () => {
         base58.encode(kxPub),
       );
     */
-    const hex = encoding('base16');
+
     const kxPub = hex.decode('cb67626f06ae86f8bdf5ecb23d66d823459c76957534324d39fee795e613c911');
     const did = `did:ethr:${providerConfig.name}:${address}`;
 
     const didDocument = (await didResolver.resolve(did)).didDocument!;
-
-    const kid = `${did}#delegate-4`; // '#delegate-4' suffix is specific to the test case
+    // console.log(didDocument); // note the #delegate-x keyAgreement key suffix
+    const kid = `${did}#delegate-6`;
     const jwk = new DIDKeyResolver().resolveKey(didDocument, kid);
 
-    expect(encoding('base64urlpad').decode(jwk.x)).toStrictEqual(kxPub);
+    expect(base64.decode(jwk.x)).toStrictEqual(kxPub);
   }, 20000);
 });
