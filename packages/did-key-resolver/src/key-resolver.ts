@@ -72,7 +72,7 @@ export class DIDKeyResolver {
 
     const bases: Map<BaseName, string | undefined> = new Map([
       ['base58btc', verificationMethod.publicKeyBase58],
-      ['base64', verificationMethod.publicKeyBase64],
+      ['base64url', verificationMethod.publicKeyBase64],
       ['base16', this.preformatHex(verificationMethod.publicKeyHex)],
     ]);
 
