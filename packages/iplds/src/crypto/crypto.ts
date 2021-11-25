@@ -1,6 +1,5 @@
 import { CURVES, EC256, EC256JWK, ECDHCurve } from '@identity.com/jwk';
 import { generateKeyPair, jwkPrivateToRaw, jwkPublicToRaw, sanitizePublicKey } from '@identity.com/jwk/src/jwk';
-import { Crypto } from '@peculiar/webcrypto';
 import { AES } from '@stablelib/aes';
 import { AESKW } from '@stablelib/aes-kw';
 import { GCM } from '@stablelib/gcm';
@@ -11,6 +10,7 @@ import { ec as EC } from 'elliptic';
 import { concat } from 'uint8arrays/concat';
 import { ECKey, Key, KeyAgreement, Recipient } from '../types/types';
 import { encoding } from 'multibase';
+import { SHA256 } from '@stablelib/sha256';
 
 const IV_BITS = 96;
 const MAX_INT32 = 2 ** 32;
@@ -24,7 +24,6 @@ const ELLIPTIC_CURVE_MAP: Record<EC256, string> = {
   'K-256': 'secp256k1',
   'P-256': 'p256',
 };
-const crypto = new Crypto();
 const base64 = encoding('base64url');
 
 export const createECKey = async (crv: ECDHCurve = 'X25519'): Promise<ECKey> => {
@@ -40,8 +39,11 @@ export const sha256 = async (data: Uint8Array): Promise<string> =>
     .map((b) => b.toString(16).padStart(2, '0'))
     .join(''); // convert bytes to hex string
 
-export const sha256Raw = async (data: Uint8Array): Promise<Uint8Array> =>
-  new Uint8Array(await crypto.subtle.digest('SHA-256', data));
+export const sha256Raw = async (data: Uint8Array): Promise<Uint8Array> => {
+  const sha256 = new SHA256();
+  sha256.update(data);
+  return sha256.digest();
+};
 
 export const generateIV = (): Uint8Array => randomBytes(IV_BYTES);
 
