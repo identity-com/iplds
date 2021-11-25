@@ -3,6 +3,8 @@ import { encoding } from 'multibase';
 import { DIDKeyResolver } from '../src/key-resolver';
 import { Resolver } from 'did-resolver';
 import ethr from 'ethr-did-resolver';
+// import { DelegateTypes, EthrDID } from 'ethr-did';
+// import { ethers } from 'ethers';
 
 const base58 = encoding('base58btc');
 const hex = encoding('base16');
@@ -155,21 +157,21 @@ describe('ETHR key resolver', () => {
     // console.log(`kx[pub]: ${hex.encode(keyAgreementPair.publicKey)}`);
 
     // did/pub/(Secp256k1|RSA|Ed25519|X25519)/(veriKey|sigAuth|enc)/(hex|base64|base58)
-    /*
-    const res = await ethrDid.setAttribute(
-        `did/pub/X25519/${DelegateTypes.enc}/base58`,
-        base58.encode(kxPub),
-      );
-    */
 
     const kxPub = hex.decode('cb67626f06ae86f8bdf5ecb23d66d823459c76957534324d39fee795e613c911');
+    // const res = await ethrDid.setAttribute(
+    //     `did/pub/X25519/${DelegateTypes.enc}/base58`,
+    //     base58.encode(kxPub),
+    //     100 * 366 * 24 * 3600,
+    //   );
+
     const did = `did:ethr:${providerConfig.name}:${address}`;
 
     const didDocument = (await didResolver.resolve(did)).didDocument!;
     // console.log(didDocument); // note the #delegate-x keyAgreement key suffix
-    const kid = `${did}#delegate-6`;
+    const kid = `${did}#delegate-13`;
     const jwk = new DIDKeyResolver().resolveKey(didDocument, kid);
 
     expect(base64.decode(jwk.x)).toStrictEqual(kxPub);
-  }, 20000);
+  }, 480000);
 });
