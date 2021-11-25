@@ -22,9 +22,8 @@ The main entities are:
 - [IWallet](src/secure/wallet.ts): An entity abstracting cryptography operations required by the protocol
   - Currently used primitives are AES256GCM, AES256KW and ECDH-ES on (NIST) P-256, K-256 (secp256k1) and X25519 curves
   - The [IWallet](src/secure/wallet.ts) interface provides an abstraction, but current implementation works in both Node and browsers, using:
-    - [Elliptic] for P-256 and K-256
+    - [Elliptic](https://github.com/indutny/elliptic) for P-256 and K-256
     - [stable-lib] for X25519 and AES* operations
-    - [peculiar/webcrypyo] for digest (TODO: ??)
 
 ## Installation
 
@@ -33,14 +32,12 @@ FIXME
 ## Usage
 
 ```typescript
-import { create } from 'ipfs-http-client';
-import { Crypto } from '@peculiar/webcrypto';
+import { generateKeyPair } from '@identity.com/jwk';
 import { SecureContext } from 'iplds';
+import { create } from 'ipfs-http-client';
 
 const crypto = new Crypto();
-const keyPair = await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, [
-  'deriveBits',
-]);
+const keyPair = generateKeyPair('P-256');
 
 // create secure context providing data owner keypair
 const context = await SecureContext.create(keyPair);
@@ -158,24 +155,19 @@ Here is an example of secure content sharing.
 
 ```typescript
 import { create } from 'ipfs-http-client';
-import { Crypto } from '@peculiar/webcrypto';
+import { generateKeyPair } from '@identity.com/jwk';
 import { SecureContext, SCID } from 'iplds';
 
 const ipfs = create({ url: 'http://localhost:5001/api/v0' });
-const crypto = new Crypto();
 
 // Here is Alice, who has some secret content stored on IPFS.
-const alice = await crypto.subtle.generateKey(
-  { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']
-);
+const alice = generateKeyPair('P-256');
 const aliceContext = await SecureContext.create(alice);
 const aliceStore = aliceContext.secure(ipfs);
 const cid = await aliceStore.put({ content: 'secret information'});
 
 // Here is Bob, who made his public key known to Alice.
-const bob = await crypto.subtle.generateKey(
-  { name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits']
-);
+const bob = generateKeyPair('P-256');
 
 // Now Alice, can share use Bob's public key to create a shareable CID.
 const shareable = await aliceStore.share(cid, bob.publicKey!);
