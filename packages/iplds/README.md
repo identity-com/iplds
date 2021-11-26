@@ -31,16 +31,17 @@ FIXME
 
 ## Usage
 
+(taken from [examples.test.ts](test/examples.test.ts))
+
 ```typescript
 import { generateKeyPair } from '@identity.com/jwk';
-import { SecureContext } from 'iplds';
+import { SecureContext } from '@identity.com/iplds';
 import { create } from 'ipfs-http-client';
 
-const crypto = new Crypto();
 const keyPair = generateKeyPair('P-256');
 
 // create secure context providing data owner keypair
-const context = await SecureContext.create(keyPair);
+const context = await SecureContext.create(Wallet.from(keyPair));
 
 // create standard IPFS client
 const ipfs = create({ url: 'http://localhost:5001/api/v0' });
@@ -65,7 +66,7 @@ new TextDecoder().decode(value) // secret text
 ```typescript
 import * as fs from 'fs';
 
-const data = new Uint8Array(fs.readFileSync('scan.jpg'));
+const data = new Uint8Array(fs.readFileSync('./test/samples/sample.jpg'));
 const cid = await store.put(data);
 const { value: image } = await store.get(cid);
 ```
@@ -143,7 +144,7 @@ const parent = {
 const cid = await store.put(parent);
 const { value } = await store.get(cid, { path: 'users/0/a/b/c/name' }); // 'Alice'
 ```
-Note that path resolution algorithm tries to deffer content reading as long as possible.
+Note that path resolution algorithm tries to defer content reading for as long as possible.
 It will first try to locate the target file by traversing the metadata graph. Then the file will be downloaded and decrypted to continue path resolution inside it.
 
 ### Sharing
@@ -156,28 +157,28 @@ Here is an example of secure content sharing.
 ```typescript
 import { create } from 'ipfs-http-client';
 import { generateKeyPair } from '@identity.com/jwk';
-import { SecureContext, SCID } from 'iplds';
+import { SecureContext, SCID } from '@identity.com/iplds';
 
 const ipfs = create({ url: 'http://localhost:5001/api/v0' });
 
-// Here is Alice, who has some secret content stored on IPFS.
 const alice = generateKeyPair('P-256');
-const aliceContext = await SecureContext.create(alice);
+const aliceContext = await SecureContext.create(Wallet.from(alice));
 const aliceStore = aliceContext.secure(ipfs);
-const cid = await aliceStore.put({ content: 'secret information'});
+const content = { content: 'secret information' };
+const cid = await aliceStore.put(content);
 
 // Here is Bob, who made his public key known to Alice.
 const bob = generateKeyPair('P-256');
 
 // Now Alice, can share use Bob's public key to create a shareable CID.
-const shareable = await aliceStore.share(cid, bob.publicKey!);
-const sCID = await shareable.asString();
+const shareable = await aliceStore.share(cid, bob);
 
 // Later Bob can use his private key
 // and the CID received from Alice to retrieve the content.
-const bobContext = await SecureContext.create(bob);
+const bobContext = await SecureContext.create(Wallet.from(bob));
 const bobStore = bobContext.secure(ipfs);
-const { value } = await bobStore.get(await SCID.from(sCID));
+const { value } = await bobStore.get(shareable);
+
 //  { content: 'secret information' }
 ```
 **NB:** A shareable CID alone does not give access to the encrypted content.
