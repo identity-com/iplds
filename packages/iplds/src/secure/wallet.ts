@@ -101,19 +101,15 @@ export class Wallet implements IWallet<ECKey, Key> {
       return { key: key ?? (await createAESGCMKey()), iv: iv ?? generateIV() };
     }
 
-    const dataHash = await sha256Raw(bytes);
+    const dataHash = sha256Raw(bytes);
     const encoder = new TextEncoder();
     iv =
-      iv ??
-      (await sha256Raw(await sha256Raw(concat([encoder.encode('IV'), deduplicationSecret, dataHash])))).subarray(
-        0,
-        IV_BYTES,
-      );
+      iv ?? sha256Raw(sha256Raw(concat([encoder.encode('IV'), deduplicationSecret, dataHash]))).subarray(0, IV_BYTES);
 
     key =
       key ??
       // eslint-disable-next-line no-extra-parens
-      (await sha256Raw(await sha256Raw(concat([encoder.encode('ENCRYPTION_KEY'), deduplicationSecret, dataHash]))));
+      sha256Raw(sha256Raw(concat([encoder.encode('ENCRYPTION_KEY'), deduplicationSecret, dataHash])));
 
     return { key, iv };
   }

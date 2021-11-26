@@ -19,20 +19,17 @@ export class SecureContext {
     private readonly deduplicationSecret?: Uint8Array,
   ) {}
 
-  static async create(wallet: IWallet<ECKey, Key>, deduplication: DeduplicationContext = true): Promise<SecureContext> {
-    return new SecureContext(wallet, await SecureContext.getDeduplicationSecret(deduplication, wallet.publicKey));
+  static create(wallet: IWallet<ECKey, Key>, deduplication: DeduplicationContext = true): SecureContext {
+    return new SecureContext(wallet, SecureContext.getDeduplicationSecret(deduplication, wallet.publicKey));
   }
 
-  private static async getDeduplicationSecret(
-    deduplication: DeduplicationContext,
-    publicKey: ECKey,
-  ): Promise<Uint8Array | undefined> {
+  private static getDeduplicationSecret(deduplication: DeduplicationContext, publicKey: ECKey): Uint8Array | undefined {
     if (typeof deduplication === 'boolean') {
       if (!deduplication) {
         return undefined;
       }
 
-      return await sha256Raw(jwkPublicToRaw(publicKey, false));
+      return sha256Raw(jwkPublicToRaw(publicKey, false));
     }
     if (deduplication.secret.length < 16) {
       throw new Error('Too short deduplication secret. Deduplication secret must be at least 16 bytes');

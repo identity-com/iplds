@@ -34,12 +34,12 @@ export const keyAgreement = async (recipientPublic: ECKey, cek: Key): Promise<Ke
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   await encryptKeyManagement(ALG_KEY_AGREEMENT, recipientPublic, cek, {});
 
-export const sha256 = async (data: Uint8Array): Promise<string> =>
-  Array.from(await sha256Raw(data))
+export const sha256 = (data: Uint8Array): string =>
+  Array.from(sha256Raw(data))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join(''); // convert bytes to hex string
 
-export const sha256Raw = async (data: Uint8Array): Promise<Uint8Array> => {
+export const sha256Raw = (data: Uint8Array): Uint8Array => {
   const sha256 = new SHA256();
   sha256.update(data);
   return sha256.digest();
@@ -58,12 +58,8 @@ export const decryptAES = async (encrypted: Uint8Array, key: Key, iv: Uint8Array
 
 export const createAESGCMKey = async (): Promise<Uint8Array> => await Promise.resolve(randomBytes(KEY_BYTES));
 
-export const deriveKey = async (
-  publicKey: ECKey,
-  privateKey: ECKey,
-  algorithm: string,
-  keyLength: number,
-): Promise<Key> => await concatKDF(getSharedSecret(publicKey, privateKey), keyLength, algorithm);
+export const deriveKey = (publicKey: ECKey, privateKey: ECKey, algorithm: string, keyLength: number): Key =>
+  concatKDF(getSharedSecret(publicKey, privateKey), keyLength, algorithm);
 
 const getSharedSecret = (publicKey: ECKey, privateKey: ECKey): Uint8Array => {
   if (!CURVES.includes(publicKey.crv)) {
@@ -91,7 +87,7 @@ export const encryptKeyManagement = async (
   const { epk } = providedParameters;
   const ephemeralKey = epk ?? generateKeyPair(recipientPublic.crv);
 
-  const sharedSecret = await deriveKey(recipientPublic, ephemeralKey, alg, parseInt(alg.substr(-5, 3), 10));
+  const sharedSecret = deriveKey(recipientPublic, ephemeralKey, alg, parseInt(alg.substr(-5, 3), 10));
   // parameters = { epk: { x, y, crv, kty } };
   //   if (apu) parameters.apu = b64encode(apu);
   //   if (apv) parameters.apv = b64encode(apv);
@@ -101,17 +97,13 @@ export const encryptKeyManagement = async (
   return { cek, encryptedKey, parameters: { epk: sanitizePublicKey(ephemeralKey) } };
 };
 
-export const decryptKeyManagement = async (
-  alg: string,
-  recipientPrivate: ECKey,
-  ecdhRecipient: Recipient,
-): Promise<Key> => {
+export const decryptKeyManagement = (alg: string, recipientPrivate: ECKey, ecdhRecipient: Recipient): Key => {
   // Direct Key Agreement
   if (!ecdhAllowed(recipientPrivate.crv)) {
     throw new Error('ECDH-ES with the provided key is not allowed or not supported by your javascript runtime');
   }
 
-  const sharedSecret = await deriveKey(ecdhRecipient[1].epk, recipientPrivate, alg, parseInt(alg.substr(-5, 3), 10));
+  const sharedSecret = deriveKey(ecdhRecipient[1].epk, recipientPrivate, alg, parseInt(alg.substr(-5, 3), 10));
 
   // Key Agreement with Key Wrapping
   return unwrap(sharedSecret, ecdhRecipient[2]);
@@ -123,8 +115,8 @@ const wrap = async (key: Uint8Array, cek: Key): Promise<Uint8Array> => {
   return await Promise.resolve(new AESKW(key).wrapKey(cek));
 };
 
-const unwrap = async (key: Uint8Array, wrappedKey: Uint8Array): Promise<Uint8Array> => {
-  return await Promise.resolve(new AESKW(key).unwrapKey(wrappedKey));
+const unwrap = (key: Uint8Array, wrappedKey: Uint8Array): Uint8Array => {
+  return new AESKW(key).unwrapKey(wrappedKey);
 };
 const ellipticSharedKey = (publicKey: EC256JWK, privateKey: EC256JWK): Uint8Array => {
   const ec = new EC(ELLIPTIC_CURVE_MAP[publicKey.crv]);
@@ -156,7 +148,7 @@ const lengthAndInput = (input: Uint8Array): Uint8Array => concat([uint32be(input
 
 // Implementation from:
 // https://github.com/decentralized-identity/did-jwt
-const concatKDF = async (secret: Uint8Array, keyLen: number, alg: string): Promise<Uint8Array> => {
+const concatKDF = (secret: Uint8Array, keyLen: number, alg: string): Uint8Array => {
   if (keyLen !== 256) {
     throw new Error(`Unsupported key length: ${keyLen}`);
   }
@@ -168,5 +160,5 @@ const concatKDF = async (secret: Uint8Array, keyLen: number, alg: string): Promi
   ]);
   // since our key lenght is 256 we only have to do one round
   const roundNumber = 1;
-  return await sha256Raw(concat([uint32be(roundNumber), secret, value]));
+  return sha256Raw(concat([uint32be(roundNumber), secret, value]));
 };

@@ -2,7 +2,7 @@ import { resolve } from '@identity.com/sol-did-client';
 import { encoding } from 'multibase';
 import { DIDKeyResolver } from '../src/key-resolver';
 import { Resolver } from 'did-resolver';
-import ethr from 'ethr-did-resolver';
+import { getResolver } from 'ethr-did-resolver';
 // import { DelegateTypes, EthrDID } from 'ethr-did';
 // import { ethers } from 'ethers';
 
@@ -130,7 +130,7 @@ describe('ETHR key resolver', () => {
       name: '0x4',
       rpcUrl: 'https://rinkeby.infura.io/v3/38bae4dd55b942c98e1df206a33f53a5',
     };
-    const ethrDidResolver = ethr.getResolver(providerConfig);
+    const ethrDidResolver = getResolver(providerConfig);
     const didResolver = new Resolver(ethrDidResolver);
 
     const address = '0x420A68929B22bf8A17897f2ca7e3807Bd1D53508';

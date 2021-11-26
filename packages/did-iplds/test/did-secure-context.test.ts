@@ -26,7 +26,7 @@ describe.each([['X25519' as ECDHCurve]])('DID Secure Context: %s', (curve) => {
     let cid: CID;
 
     beforeEach(async () => {
-      ctx = await DIDSecureContext.create({ wallet: alice });
+      ctx = DIDSecureContext.create({ wallet: alice });
       secure = ctx.secure(ipfs);
       cid = await secure.put(data);
     });
@@ -43,7 +43,7 @@ describe.each([['X25519' as ECDHCurve]])('DID Secure Context: %s', (curve) => {
     it('should create share metadata for Bob', async () => {
       const scid = await secure.share(cid, { didDocument: didDocument({ publicKeyBase58: toBase58(bob.publicKey) }) });
 
-      const bobCtx = await DIDSecureContext.create({ wallet: bob });
+      const bobCtx = DIDSecureContext.create({ wallet: bob });
       const bobSecure = bobCtx.secure(ipfs);
       const { value } = await bobSecure.get(scid);
       expect(value).toStrictEqual(data);
@@ -60,7 +60,7 @@ describe.each([['X25519' as ECDHCurve]])('DID Secure Context: %s', (curve) => {
 
     beforeEach(async () => {
       didRegistry = {};
-      ctx = await DIDSecureContext.create({ wallet: alice, didResolver: resolver });
+      ctx = DIDSecureContext.create({ wallet: alice, didResolver: resolver });
       secure = ctx.secure(ipfs);
       cid = await secure.put(data);
     });
@@ -89,7 +89,7 @@ describe.each([['X25519' as ECDHCurve]])('DID Secure Context: %s', (curve) => {
 
       const scid = await secure.share(cid, { did: bobDID });
 
-      const bobCtx = await DIDSecureContext.create({ wallet: bob });
+      const bobCtx = DIDSecureContext.create({ wallet: bob });
       const bobSecure = bobCtx.secure(ipfs);
       const { value } = await bobSecure.get(scid);
       expect(value).toStrictEqual(data);
