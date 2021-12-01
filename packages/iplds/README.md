@@ -168,14 +168,14 @@ const content = { content: 'secret information' };
 const cid = await aliceStore.put(content);
 
 // Here is Bob, who made his public key known to Alice.
-const bob = generateKeyPair('P-256');
+const bobWallet = Wallet.from(generateKeyPair('P-256'));
 
 // Now Alice, can share use Bob's public key to create a shareable CID.
-const shareable = await aliceStore.share(cid, bob);
+const shareable = await aliceStore.share(cid, bobWallet.publicKey);
 
 // Later Bob can use his private key
 // and the CID received from Alice to retrieve the content.
-const bobContext = await SecureContext.create(Wallet.from(bob));
+const bobContext = SecureContext.create(bobWallet);
 const bobStore = bobContext.secure(ipfs);
 const { value } = await bobStore.get(shareable);
 
