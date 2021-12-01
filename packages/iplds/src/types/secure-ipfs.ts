@@ -1,3 +1,4 @@
+import { SecureContext } from '../secure/secure-context';
 import { GetOptions, GetResult, PutOptions } from 'ipfs-core-types/src/dag';
 import { CID } from 'ipfs-http-client';
 import { SCID } from './scid';
@@ -13,7 +14,8 @@ export interface SecureDAG {
 }
 
 export interface PublicKeyShareable {
-  share(cid: CID | SCID, publicKey: ECKey): Promise<SCID>;
+  share(cid: CID | SCID, publicKey: ECKey, reencryptNodes?: boolean): Promise<SCID>;
+  fullShare(cid: CID | SCID, recipient: SecureContext): Promise<SCID>;
 }
 
 export interface SecureIPFS extends SecureDAG, PublicKeyShareable {}

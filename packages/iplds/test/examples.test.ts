@@ -121,17 +121,50 @@ describe('Secure Context', () => {
     const cid = await aliceStore.put(content);
 
     // Here is Bob, who made his public key known to Alice.
-    const bob = Wallet.from(generateKeyPair('P-256'));
+    const bobWallet = Wallet.from(generateKeyPair('P-256'));
 
     // Now Alice, can share use Bob's public key to create a shareable CID.
-    const shareable = await aliceStore.share(cid, bob.publicKey);
+    const shareable = await aliceStore.share(cid, bobWallet.publicKey);
 
     // Later Bob can use his private key
     // and the CID received from Alice to retrieve the content.
-    const bobContext = SecureContext.create(bob);
+    const bobContext = SecureContext.create(bobWallet);
     const bobStore = bobContext.secure(ipfs);
     const { value } = await bobStore.get(shareable);
 
     expect(value).toStrictEqual(content);
+  });
+
+  it('should re-share the secret with different keys', async () => {
+    const alice = generateKeyPair('P-256');
+    const aliceContext = SecureContext.create(Wallet.from(alice));
+    const aliceStore = aliceContext.secure(ipfs);
+
+    const doc1 = await aliceStore.put({
+      name: 'Alice',
+    });
+    const doc2 = await aliceStore.put({
+      name: 'Bob',
+    });
+    const cid = await aliceStore.put({
+      name: 'User List',
+      users: [doc1, doc2],
+    });
+
+    const scid = await aliceStore.share(cid, alice);
+    // Here is Bob, who made his public key known to Alice.
+    const bobContext = SecureContext.create(Wallet.from(generateKeyPair('P-256')));
+
+    // Now Alice, can share use Bob's public key to create a shareable CID.
+    const shareable = await aliceStore.fullShare(scid, bobContext);
+
+    // Later Bob can use his private key
+    // and the CID received from Alice to retrieve the content.
+    const bobStore = bobContext.secure(ipfs);
+    const { value } = await bobStore.get(shareable, { path: 'users/0' });
+
+    expect(value).toStrictEqual({ name: 'Alice' });
+
+    await expect(async () => await aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
   });
 });
