@@ -8,7 +8,7 @@ import { SCID } from '../types/scid';
 import { SecureIPFS } from '../types/secure-ipfs';
 import { CIDMetadata, Cose, DeduplicationContext, ECKey, Key, Link, MetadataOrComplexObject } from '../types/types';
 import { buildLinkObject, cloneReplacingCIDs, ComplexObject, links } from '../utils/utils';
-import { IWallet } from './wallet';
+import { IWallet, Wallet } from './wallet';
 
 export class SecureContext {
   // maps CID to CIDMetadata
@@ -46,8 +46,8 @@ export class SecureContext {
       }
       return metadata.iv;
     };
-    const getMetadata = async (cose: Cose): Promise<Metadata> => {
-      const { content, key: cek } = await this.wallet.decryptCOSE(cose);
+    const getMetadata = async (metadataCose: Cose): Promise<Metadata> => {
+      const { content, key: cek } = await this.wallet.decryptCOSE(metadataCose);
       const codec = await ipfs.codecs.getCodec('dag-cbor');
       const metadata = Metadata.clone(codec.decode(content));
       this.addToContext(metadata.contentCID, cek, metadata.iv, metadata.references);
@@ -62,7 +62,7 @@ export class SecureContext {
         throw new Error(`"id" parameter is not CID.`);
       }
       const codec = await ipfs.codecs.getCodec(cid.code);
-      const block = await this.decrypt(cid, ipfs, options);
+      const block = await this.retrieve(cid, ipfs, options);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return codec.decode(block);
     };
@@ -186,28 +186,8 @@ export class SecureContext {
       }
 
       const shareableNode = cloneReplacingCIDs(node, repackedChildrenCIDs);
-      const newContentCID = await recipient.secure(ipfs).put(shareableNode);
 
-      for (const childCID of repackedChildrenCIDs) {
-        const newChildMeta = recipient.context.get(childCID[1].toString());
-        if (!newChildMeta) {
-          throw new Error(`Recipient context does not have info on ${childCID.toString()}`);
-        }
-
-        const metadata = new Metadata(childCID[1], newChildMeta.iv, newChildMeta.links);
-
-        const encryptedMetadata = await recipient.wallet.encryptCOSE(
-          codec.encode(metadata),
-          newChildMeta.key,
-          recipient.wallet.publicKey,
-        );
-
-        const newContentMeta = recipient.context.get(newContentCID.toString());
-
-        await persistMetadata(encryptedMetadata, newContentMeta?.key);
-      }
-
-      return newContentCID;
+      return await recipient.secure(ipfs).put(shareableNode);
     };
 
     const repackMetadata = async (
@@ -290,9 +270,8 @@ export class SecureContext {
       return await createMetadata(cid, publicKey, codec);
     };
 
-    const toSCID = (cid: CID, context?: SecureContext): SCID => {
-      const ctx = context ? context.context : this.context;
-      const cidMetadata = ctx.get(cid.toString());
+    const toSCID = (cid: CID, secureContext = this): SCID => {
+      const cidMetadata = secureContext.context.get(cid.toString());
       if (!cidMetadata) {
         throw new Error(`Unknown CID: ${cid.toString()}`);
       }
@@ -300,16 +279,16 @@ export class SecureContext {
       return new SCID(cidMetadata.key, cidMetadata.iv, cid);
     };
 
-    const shallowShare = async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
-      const publicKey = recipientPublicKey ?? this.wallet.publicKey;
-      const cose = await createCOSE(cid, publicKey);
+    const shallowShare = async (cid: CID | SCID, recipientPublicKey = this.wallet.publicKey): Promise<SCID> => {
+      const cose = await createCOSE(cid, recipientPublicKey);
       const metadataCID = await persistMetadata(cose);
 
       return toSCID(metadataCID);
     };
 
-    const deepShare = async (cid: CID | SCID, recipient: SecureContext): Promise<SCID> => {
+    const deepShare = async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
       const resolvedCID = cid instanceof SCID ? cid : toSCID(cid);
+      const recipient = recipientPublicKey ? SecureContext.create(Wallet.from(recipientPublicKey)) : this;
 
       this.addToContext(resolvedCID.cid, resolvedCID.key, resolvedCID.iv);
       const metadata = await getMetadata(await getItem(resolvedCID.cid));
@@ -376,8 +355,8 @@ export class SecureContext {
       share: async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
         return await shallowShare(cid, recipientPublicKey);
       },
-      fullShare: async (cid: SCID, recipient: SecureContext): Promise<SCID> => {
-        return await deepShare(cid, recipient);
+      fullShare: async (cid: SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
+        return await deepShare(cid, recipientPublicKey);
       },
       getCIDs: async (cid: CID | SCID): Promise<CID[]> => {
         let metadata: Metadata | null = null;
@@ -422,7 +401,7 @@ export class SecureContext {
     }
   }
 
-  private async decrypt(cid: CID, ipfs: IPFSHTTPClient, options?: GetOptions): Promise<Uint8Array> {
+  private async retrieve(cid: CID, ipfs: IPFSHTTPClient, options?: GetOptions): Promise<Uint8Array> {
     const cidMetadata = this.context.get(cid.toString());
     if (!cidMetadata) {
       throw new Error(`Context does not have info on ${cid.toString()}`);
