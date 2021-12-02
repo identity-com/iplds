@@ -604,11 +604,8 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
       users: [doc1, doc2],
     });
 
-    const scid = await aliceStore.share(cid, alice.publicKey);
-    // Here is Bob, who made his public key known to Alice.
-
     // Now Alice, can share use Bob's public key to create a shareable CID.
-    const shareable = await aliceStore.fullShare(scid, bob.publicKey);
+    const shareable = await aliceStore.fullShare(cid, bob.publicKey);
 
     // Later Bob can use his private key
     // and the CID received from Alice to retrieve the content.
@@ -618,6 +615,53 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
 
     expect(value).toStrictEqual({ name: 'Alice' });
 
+    await expectShared(aliceContext, bobContext, cid, shareable);
+
+    await expect(aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
+  });
+
+  it('should re-share the secret with different keys within cold contexts', async () => {
+    const aliceContext = SecureContext.create(alice);
+    const aliceStore = aliceContext.secure(ipfs);
+
+    const doc1 = await aliceStore.put({
+      name: 'Alice',
+    });
+    const doc2 = await aliceStore.put({
+      name: 'Bob',
+    });
+    const cid = await aliceStore.put({
+      name: 'User List',
+      users: [doc1, doc2],
+    });
+
+    const scid = await aliceStore.share(cid, alice.publicKey);
+    const coldAliceContext = SecureContext.create(alice);
+    const coldAliceStore = coldAliceContext.secure(ipfs);
+    // Here is Bob, who made his public key known to Alice.
+
+    // Now Alice, can share use Bob's public key to create a shareable CID.
+    const shareable = await coldAliceStore.fullShare(scid, bob.publicKey);
+
+    // Later Bob can use his private key
+    // and the CID received from Alice to retrieve the content.
+    const coldBobContext = SecureContext.create(bob);
+    const bobStore = coldBobContext.secure(ipfs);
+    const { value } = await bobStore.get(shareable, { path: 'users/0' });
+
+    expect(value).toStrictEqual({ name: 'Alice' });
+
+    await expectShared(coldAliceContext, coldBobContext, cid, shareable);
+
+    await expect(aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
+  });
+
+  const expectShared = async (
+    aliceContext: SecureContext,
+    bobContext: SecureContext,
+    cid: CID,
+    shareable: SCID,
+  ): Promise<void> => {
     // eslint-disable-next-line dot-notation
     const innerAliceContext = aliceContext['context'];
     const rootAliceMeta = innerAliceContext.get(cid.toString());
@@ -655,79 +699,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     expect(aliceChild0Meta?.iv).toBeDefined();
     expect(bobChild0Meta?.iv).toBeDefined();
     expect(aliceChild0Meta?.iv).not.toEqual(bobChild0Meta?.iv);
-    await expect(aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
-  });
-
-  it('should re-share the secret with different keys within cold contexts', async () => {
-    const aliceContext = SecureContext.create(alice);
-    const aliceStore = aliceContext.secure(ipfs);
-
-    const doc1 = await aliceStore.put({
-      name: 'Alice',
-    });
-    const doc2 = await aliceStore.put({
-      name: 'Bob',
-    });
-    const cid = await aliceStore.put({
-      name: 'User List',
-      users: [doc1, doc2],
-    });
-
-    const scid = await aliceStore.share(cid, alice.publicKey);
-    const coldAliceContext = SecureContext.create(alice);
-    const coldAliceStore = coldAliceContext.secure(ipfs);
-    // Here is Bob, who made his public key known to Alice.
-
-    // Now Alice, can share use Bob's public key to create a shareable CID.
-    const shareable = await coldAliceStore.fullShare(scid, bob.publicKey);
-
-    // Later Bob can use his private key
-    // and the CID received from Alice to retrieve the content.
-    const coldBobContext = SecureContext.create(bob);
-    const bobStore = coldBobContext.secure(ipfs);
-    const { value } = await bobStore.get(shareable, { path: 'users/0' });
-
-    expect(value).toStrictEqual({ name: 'Alice' });
-
-    // eslint-disable-next-line dot-notation
-    const innerAliceContext = coldAliceContext['context'];
-    const rootAliceMeta = innerAliceContext.get(cid.toString());
-
-    // eslint-disable-next-line dot-notation
-    const innerBobContext = coldBobContext['context'];
-
-    const rootBobMeta = innerBobContext.get((await retrieveContentCID(ipfs, shareable, coldBobContext)).toString());
-
-    expect(rootAliceMeta?.key).toBeDefined();
-    expect(rootBobMeta?.key).toBeDefined();
-    expect(rootAliceMeta?.key).not.toEqual(rootBobMeta?.key);
-
-    expect(rootAliceMeta?.iv).toBeDefined();
-    expect(rootBobMeta?.iv).toBeDefined();
-    expect(rootAliceMeta?.iv).not.toEqual(rootBobMeta?.iv);
-
-    const aliceChild0 = rootAliceMeta?.links?.[0];
-    const bobChild0 = rootBobMeta?.links?.[0];
-
-    expect(aliceChild0?.iv).toBeDefined();
-    expect(bobChild0?.iv).toBeDefined();
-    expect(aliceChild0?.iv).not.toEqual(bobChild0?.iv);
-
-    if (!aliceChild0 || !bobChild0) {
-      throw new Error("can't be");
-    }
-    const aliceChild0Meta = innerAliceContext.get(aliceChild0.cid.toString());
-    const bobChild0Meta = innerBobContext.get(bobChild0.cid.toString());
-
-    expect(aliceChild0Meta?.key).toBeDefined();
-    expect(bobChild0Meta?.key).toBeDefined();
-    expect(aliceChild0Meta?.key).not.toEqual(bobChild0Meta?.key);
-
-    expect(aliceChild0Meta?.iv).toBeDefined();
-    expect(bobChild0Meta?.iv).toBeDefined();
-    expect(aliceChild0Meta?.iv).not.toEqual(bobChild0Meta?.iv);
-    await expect(aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
-  });
+  };
 });
 
 const scidToCose = async (ipfs: IPFSHTTPClient, scid: SCID, codec: BlockCodec): Promise<Cose> => {

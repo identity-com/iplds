@@ -162,8 +162,8 @@ export class SecureContext {
       recipient: SecureContext,
       codec: BlockCodec,
     ): Promise<CID> => {
-      const contentMeta = this.context.get(contentCID.toString());
-      if (!contentMeta) {
+      const nodeMeta = this.context.get(contentCID.toString());
+      if (!nodeMeta) {
         throw new Error(`Context does not have info on ${contentCID.toString()}`);
       }
 
@@ -180,9 +180,35 @@ export class SecureContext {
       const coses = await Promise.all(pCoses);
       const childrenMetadatas = await Promise.all(coses.map(getMetadata));
 
+      const childCIDEntries: Promise<[string, CID]>[] = childrenMetadatas.map(
+        async (childMetadata): Promise<[string, CID]> => [
+          childMetadata.contentCID.toString(),
+          await repackAll(childMetadata, recipient, codec),
+        ],
+      );
+
+      const repackedChildrenCIDs: Map<string, CID> = new Map(await Promise.all(childCIDEntries));
+
+      const shareableNode = cloneReplacingCIDs(node, repackedChildrenCIDs);
+
+      return await recipient.secure(ipfs).put(shareableNode);
+    };
+
+    const repackCIDs = async (nodeCID: CID, recipient: SecureContext, codec: BlockCodec): Promise<CID> => {
+      const nodeMeta = this.context.get(nodeCID.toString());
+      if (!nodeMeta) {
+        throw new Error(`Context does not have info on ${nodeCID.toString()}`);
+      }
+
+      const node = await getItem<ComplexObject>(nodeCID);
+      if (!node) {
+        throw new Error(`Couldn't retrieve ${nodeCID.toString()} from storage`);
+      }
+      nodeMeta.links = [...links(node, ivResolver)];
+
       const repackedChildrenCIDs: Map<string, CID> = new Map();
-      for (const childMetadata of childrenMetadatas) {
-        repackedChildrenCIDs.set(childMetadata.contentCID.toString(), await repackAll(childMetadata, recipient, codec));
+      for (const link of nodeMeta.links) {
+        repackedChildrenCIDs.set(link.cid.toString(), await repackCIDs(link.cid, recipient, codec));
       }
 
       const shareableNode = cloneReplacingCIDs(node, repackedChildrenCIDs);
@@ -279,22 +305,25 @@ export class SecureContext {
       return new SCID(cidMetadata.key, cidMetadata.iv, cid);
     };
 
-    const shallowShare = async (cid: CID | SCID, recipientPublicKey = this.wallet.publicKey): Promise<SCID> => {
+    const shareable = async (cid: CID | SCID, recipientPublicKey = this.wallet.publicKey): Promise<SCID> => {
       const cose = await createCOSE(cid, recipientPublicKey);
       const metadataCID = await persistMetadata(cose);
 
       return toSCID(metadataCID);
     };
 
-    const deepShare = async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
-      const resolvedCID = cid instanceof SCID ? cid : toSCID(cid);
+    const share = async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
       const recipient = recipientPublicKey ? SecureContext.create(Wallet.from(recipientPublicKey)) : this;
-
-      this.addToContext(resolvedCID.cid, resolvedCID.key, resolvedCID.iv);
-      const metadata = await getMetadata(await getItem(resolvedCID.cid));
-      // console.log(`metadata: ${metadata.contentCID}, ${metadata.references}`);
+      let newRootCID;
       const codec = await ipfs.codecs.getCodec('dag-cbor');
-      const newRootCID = await repackAll(metadata, recipient, codec);
+      if (cid instanceof CID) {
+        newRootCID = await repackCIDs(cid, recipient, codec);
+      } else {
+        this.addToContext(cid.cid, cid.key, cid.iv);
+        const metadata = await getMetadata(await getItem(cid.cid));
+
+        newRootCID = await repackAll(metadata, recipient, codec);
+      }
 
       return await recipient.secure(ipfs).share(newRootCID, recipient.wallet.publicKey);
     };
@@ -353,10 +382,10 @@ export class SecureContext {
         };
       },
       share: async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
-        return await shallowShare(cid, recipientPublicKey);
+        return await shareable(cid, recipientPublicKey);
       },
       fullShare: async (cid: SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
-        return await deepShare(cid, recipientPublicKey);
+        return await share(cid, recipientPublicKey);
       },
       getCIDs: async (cid: CID | SCID): Promise<CID[]> => {
         let metadata: Metadata | null = null;

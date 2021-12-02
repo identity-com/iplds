@@ -151,15 +151,14 @@ describe('Secure Context', () => {
       users: [doc1, doc2],
     });
 
-    const scid = await aliceStore.share(cid, alice);
     // Here is Bob, who made his public key known to Alice.
     const bob = generateKeyPair('P-256');
 
-    // Now Alice, can share use Bob's public key to create a shareable CID.
-    const shareable = await aliceStore.fullShare(scid, bob);
+    // Now Alice, can share use Bob's public key to create a shareable CID (SCID).
+    const shareable = await aliceStore.fullShare(cid, bob);
 
     // Later Bob can use his private key
-    // and the CID received from Alice to retrieve the content.
+    // and the SCID received from Alice to retrieve the content.
     const bobContext = SecureContext.create(Wallet.from(bob));
     const bobStore = bobContext.secure(ipfs);
     const { value } = await bobStore.get(shareable, { path: 'users/0' });
