@@ -119,10 +119,11 @@ export const cloneReplacingCIDs = <T>(source: T, cids: Map<string, CID>): T => {
 
   if (source && typeof source === 'object') {
     return Object.getOwnPropertyNames(source).reduce((o, prop) => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       Object.defineProperty(o, prop, Object.getOwnPropertyDescriptor(source, prop)!);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      o[prop] = cloneReplacingCIDs(source as { [key: string]: any }[prop], cids);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, no-extra-parens, @typescript-eslint/no-explicit-any
+      o[prop] = cloneReplacingCIDs((source as { [key: string]: any })[prop], cids);
 
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return o;
