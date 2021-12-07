@@ -305,14 +305,26 @@ export class SecureContext {
       return new SCID(cidMetadata.key, cidMetadata.iv, cid);
     };
 
-    const shareable = async (cid: CID | SCID, recipientPublicKey = this.wallet.publicKey): Promise<SCID> => {
+    /**
+     * Share a DAG with a given recipient. Creates a new Metadata "shadow dag" pointing to the original DAG.
+     * @param cid - root of the DAG | SCID of the Metadata of the root of the DAG
+     * @param recipientPublicKey - public key to use for Metadata encryption; if absent will use your own
+     * @returns - SCID pointing to the new Metadata of the supplied root of the DAG
+     */
+    const share = async (cid: CID | SCID, recipientPublicKey = this.wallet.publicKey): Promise<SCID> => {
       const cose = await createCOSE(cid, recipientPublicKey);
       const metadataCID = await persistMetadata(cose);
 
       return toSCID(metadataCID);
     };
 
-    const share = async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
+    /**
+     * Deep clone a DAG for a given recipient, re-encrypting each node with a new symmetric key, and creating the Metadata structure for that
+     * @param cid - root of the DAG | SCID of the Metadata of the root of the DAG
+     * @param recipientPublicKey - public key to use for Metadata encryption; if absent will use your own
+     * @returns - SCID pointing to the Metadata of the root of the cloned DAG
+     */
+    const copyFor = async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
       const recipient = recipientPublicKey ? SecureContext.create(Wallet.from(recipientPublicKey)) : this;
       let newRootCID;
       const codec = await ipfs.codecs.getCodec('dag-cbor');
@@ -382,10 +394,10 @@ export class SecureContext {
         };
       },
       share: async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
-        return await shareable(cid, recipientPublicKey);
-      },
-      fullShare: async (cid: SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
         return await share(cid, recipientPublicKey);
+      },
+      copyFor: async (cid: SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
+        return await copyFor(cid, recipientPublicKey);
       },
       getCIDs: async (cid: CID | SCID): Promise<CID[]> => {
         let metadata: Metadata | null = null;

@@ -604,8 +604,8 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
       users: [doc1, doc2],
     });
 
-    // Now Alice, can share use Bob's public key to create a shareable CID.
-    const shareable = await aliceStore.fullShare(cid, bob.publicKey);
+    // Now Alice, can use Bob's public key to copy&re-encrypt her DAG for Bob, and create a shareable CID (SCID) for him
+    const shareable = await aliceStore.copyFor(cid, bob.publicKey);
 
     // Later Bob can use his private key
     // and the CID received from Alice to retrieve the content.
@@ -640,8 +640,8 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     const coldAliceStore = coldAliceContext.secure(ipfs);
     // Here is Bob, who made his public key known to Alice.
 
-    // Now Alice, can share use Bob's public key to create a shareable CID.
-    const shareable = await coldAliceStore.fullShare(scid, bob.publicKey);
+    // Now Alice, can use Bob's public key to copy&re-encrypt her DAG for Bob, and create a shareable CID (SCID) for him
+    const shareable = await coldAliceStore.copyFor(scid, bob.publicKey);
 
     // Later Bob can use his private key
     // and the CID received from Alice to retrieve the content.

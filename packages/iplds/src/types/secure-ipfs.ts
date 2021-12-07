@@ -14,7 +14,7 @@ export interface SecureDAG {
 
 export interface PublicKeyShareable {
   share(cid: CID | SCID, publicKey: ECKey, reencryptNodes?: boolean): Promise<SCID>;
-  fullShare(cid: CID | SCID, recipient: ECKey): Promise<SCID>;
+  copyFor(cid: CID | SCID, recipient: ECKey): Promise<SCID>;
 }
 
 export interface SecureIPFS extends SecureDAG, PublicKeyShareable {}

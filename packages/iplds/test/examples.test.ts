@@ -120,22 +120,21 @@ describe('Secure Context', () => {
     const content = { content: 'secret information' };
     const cid = await aliceStore.put(content);
 
-    // Here is Bob, who made his public key known to Alice.
-    const bobWallet = Wallet.from(generateKeyPair('P-256'));
+    // Here is Alice-mobile, some other keypair belonging to Alice.
+    const aliceMobileWallet = Wallet.from(generateKeyPair('P-256'));
 
-    // Now Alice, can share use Bob's public key to create a shareable CID.
-    const shareable = await aliceStore.share(cid, bobWallet.publicKey);
+    // Now Alice, can use her mobile public key to share her DAG with another device
+    const shareable = await aliceStore.copyFor(cid, aliceMobileWallet.publicKey);
 
-    // Later Bob can use his private key
-    // and the CID received from Alice to retrieve the content.
-    const bobContext = SecureContext.create(bobWallet);
-    const bobStore = bobContext.secure(ipfs);
-    const { value } = await bobStore.get(shareable);
+    // Later Alice can use her mobile private key and the above generated SCID to retrieve the content on another device
+    const aliceMobileContext = SecureContext.create(aliceMobileWallet);
+    const aliceMobileStore = aliceMobileContext.secure(ipfs);
+    const { value } = await aliceMobileStore.get(shareable);
 
     expect(value).toStrictEqual(content);
   });
 
-  it('should re-share the secret with different keys', async () => {
+  it('should copy the DAG for another recipient', async () => {
     const alice = generateKeyPair('P-256');
     const aliceContext = SecureContext.create(Wallet.from(alice));
     const aliceStore = aliceContext.secure(ipfs);
@@ -154,8 +153,8 @@ describe('Secure Context', () => {
     // Here is Bob, who made his public key known to Alice.
     const bob = generateKeyPair('P-256');
 
-    // Now Alice, can share use Bob's public key to create a shareable CID (SCID).
-    const shareable = await aliceStore.fullShare(cid, bob);
+    // Now Alice, can use Bob's public key to copy&re-encrypt her DAG for Bob, and create a shareable CID (SCID) for him
+    const shareable = await aliceStore.copyFor(cid, bob);
 
     // Later Bob can use his private key
     // and the SCID received from Alice to retrieve the content.

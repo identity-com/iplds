@@ -149,38 +149,79 @@ It will first try to locate the target file by traversing the metadata graph. Th
 
 ### Sharing
 The secure sharing is another powerful feature of this library. It comes into play when an encrypted content stored on the IPFS needs to be asynchronously shared with another party.
-The content is considered shared with someone when they know the CID and can use their private key to decrypt the content.
-This also implies that any content written with this library is automatically shared with the owner of the private key provided during secure context initialization.
+The content is considered shared with someone when they know the CID of the Metadata pointing to the content and can use their private key to decrypt it.
 
-Here is an example of secure content sharing.
+Use SecureIPFS.share(...) method to (re-)create a Metadata structure for the DAG you are going to be pinning yourself (usually, if you want to share it with some other device of yours).
+
+Example:
 
 ```typescript
 import { create } from 'ipfs-http-client';
 import { generateKeyPair } from '@identity.com/jwk';
-import { SecureContext, SCID } from '@identity.com/iplds';
+import { SecureContext, Wallet } from '@identity.com/iplds';
 
 const ipfs = create({ url: 'http://localhost:5001/api/v0' });
 
 const alice = generateKeyPair('P-256');
-const aliceContext = await SecureContext.create(Wallet.from(alice));
+const aliceContext = SecureContext.create(Wallet.from(alice));
 const aliceStore = aliceContext.secure(ipfs);
 const content = { content: 'secret information' };
 const cid = await aliceStore.put(content);
 
-// Here is Bob, who made his public key known to Alice.
-const bobWallet = Wallet.from(generateKeyPair('P-256'));
+// Here is Alice-mobile, some other keypair belonging to Alice.
+const aliceMobileWallet = Wallet.from(generateKeyPair('P-256'));
 
-// Now Alice, can share use Bob's public key to create a shareable CID.
-const shareable = await aliceStore.share(cid, bobWallet.publicKey);
+// Now Alice, can use her mobile public key to share her DAG with another device
+const shareable = await aliceStore.copyFor(cid, aliceMobileWallet.publicKey);
 
-// Later Bob can use his private key
-// and the CID received from Alice to retrieve the content.
-const bobContext = SecureContext.create(bobWallet);
-const bobStore = bobContext.secure(ipfs);
-const { value } = await bobStore.get(shareable);
+// Later Alice can use her mobile private key and the above generated SCID to retrieve the content on another device
+const aliceMobileContext = SecureContext.create(aliceMobileWallet);
+const aliceMobileStore = aliceMobileContext.secure(ipfs);
+const { value } = await aliceMobileStore.get(shareable);
 
 //  { content: 'secret information' }
 ```
+
+
+User SecureIPFS.copyFor(...) method to deep copy some content, (re-)encrypting it for someone else (and creating a separate Metadata structure for it). You will not have access to the copy once the operation is complete, so the recipient is supposed to be the one pinning it.
+
+Example:
+
+```typescript
+import { create } from 'ipfs-http-client';
+import { generateKeyPair } from '@identity.com/jwk';
+import { SecureContext, Wallet } from '@identity.com/iplds';
+
+const alice = generateKeyPair('P-256');
+const aliceContext = SecureContext.create(Wallet.from(alice));
+const aliceStore = aliceContext.secure(ipfs);
+
+const doc1 = await aliceStore.put({
+  name: 'Alice',
+});
+const doc2 = await aliceStore.put({
+  name: 'Bob',
+});
+const cid = await aliceStore.put({
+  name: 'User List',
+  users: [doc1, doc2],
+});
+
+// Here is Bob, who made his public key known to Alice.
+const bob = generateKeyPair('P-256');
+
+// Now Alice, can use Bob's public key to copy&re-encrypt her DAG for Bob, and create a shareable CID (SCID) for him
+const shareable = await aliceStore.copyFor(cid, bob);
+
+// Later Bob can use his private key
+// and the SCID received from Alice to retrieve the content.
+const bobContext = SecureContext.create(Wallet.from(bob));
+const bobStore = bobContext.secure(ipfs);
+const { value } = await bobStore.get(shareable, { path: 'users/0' });
+
+// { name: 'Alice'}
+```
+
 **NB:** A shareable CID alone does not give access to the encrypted content.
 However, it allows to access the encrypted content metadata which includes content encryption key identifier (`kid`).
 By default, the library uses opaque `kid`, derived from recipient public key, but it can be overridden.
