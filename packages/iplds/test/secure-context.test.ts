@@ -589,7 +589,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     });
   });
 
-  it('should re-share the secret with different keys', async () => {
+  it('should copy the secret with different keys', async () => {
     const aliceContext = SecureContext.create(alice);
     const aliceStore = aliceContext.secure(ipfs);
 
@@ -620,7 +620,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     await expect(aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
   });
 
-  it('should re-share the secret with different keys within cold contexts', async () => {
+  it('should copy the secret with different keys within cold contexts', async () => {
     const aliceContext = SecureContext.create(alice);
     const aliceStore = aliceContext.secure(ipfs);
 

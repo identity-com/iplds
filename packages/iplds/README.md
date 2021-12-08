@@ -172,7 +172,7 @@ const cid = await aliceStore.put(content);
 const aliceMobileWallet = Wallet.from(generateKeyPair('P-256'));
 
 // Now Alice, can use her mobile public key to share her DAG with another device
-const shareable = await aliceStore.copyFor(cid, aliceMobileWallet.publicKey);
+const shareable = await aliceStore.share(cid, aliceMobileWallet.publicKey);
 
 // Later Alice can use her mobile private key and the above generated SCID to retrieve the content on another device
 const aliceMobileContext = SecureContext.create(aliceMobileWallet);
