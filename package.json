@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "lerna exec -- yarn build",
-    "test": "lerna exec -- yarn test",
+    "test": "yarn build && lerna exec -- yarn test",
     "build:clean": "lerna run build:clean",
     "prepare": "husky install",
     "lint": "eslint packages/**/*.ts",

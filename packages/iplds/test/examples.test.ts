@@ -10,7 +10,7 @@ describe('Secure Context', () => {
   let ipfs: IPFSHTTPClient;
   let store: SecureIPFS;
 
-  beforeAll(() => {
+  beforeEach(() => {
     keyPair = generateKeyPair('P-256');
 
     // create secure context providing data owner keypair

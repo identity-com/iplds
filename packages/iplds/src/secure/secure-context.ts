@@ -167,31 +167,31 @@ export class SecureContext {
         throw new Error(`Context does not have info on ${contentCID.toString()}`);
       }
 
-      const node = await getItem<ComplexObject>(contentCID);
+      const node = await getItem(contentCID);
       if (!node) {
         throw new Error(`Couldn't retrieve ${contentCID.toString()} from storage`);
       }
 
-      const pCoses: Promise<Cose>[] = [];
-      for (const link of references) {
-        pCoses.push(getItem(link.cid));
-      }
-
-      const coses = await Promise.all(pCoses);
-      const childrenMetadatas = await Promise.all(coses.map(getMetadata));
-
-      const childCIDEntries: Promise<[string, CID]>[] = childrenMetadatas.map(
+      const metadata = await getReferencedMetadata(references);
+      const repackedMetadata = metadata.map(
         async (childMetadata): Promise<[string, CID]> => [
           childMetadata.contentCID.toString(),
           await repackAll(childMetadata, recipient, codec),
         ],
       );
 
-      const repackedChildrenCIDs: Map<string, CID> = new Map(await Promise.all(childCIDEntries));
-
+      const repackedChildrenCIDs = new Map(await Promise.all(repackedMetadata));
       const shareableNode = cloneReplacingCIDs(node, repackedChildrenCIDs);
-
       return await recipient.secure(ipfs).put(shareableNode);
+    };
+
+    const getReferencedMetadata = async (references: Link[]): Promise<Metadata[]> => {
+      const promises: Promise<Cose>[] = [];
+      for (const link of references) {
+        promises.push(getItem(link.cid));
+      }
+      const coses = await Promise.all(promises);
+      return await Promise.all(coses.map(getMetadata));
     };
 
     const repackCIDs = async (nodeCID: CID, recipient: SecureContext, codec: BlockCodec): Promise<CID> => {
@@ -226,13 +226,7 @@ export class SecureContext {
         throw new Error(`Context does not have info on ${contentCID.toString()}`);
       }
 
-      const items: Promise<Cose>[] = [];
-      for (const link of references) {
-        items.push(getItem(link.cid));
-      }
-
-      const coses = await Promise.all(items);
-      const metadatas = await Promise.all(coses.map(getMetadata));
+      const metadatas = await getReferencedMetadata(references);
 
       const repackedMetadatas: Promise<Cose>[] = [];
       for (const meta of metadatas) {
@@ -305,6 +299,17 @@ export class SecureContext {
       return new SCID(cidMetadata.key, cidMetadata.iv, cid);
     };
 
+    const copyDAG = async (cid: CID | SCID, recipient: SecureContext): Promise<CID> => {
+      const codec = await ipfs.codecs.getCodec('dag-cbor');
+      if (cid instanceof CID) {
+        return await repackCIDs(cid, recipient, codec);
+      }
+
+      this.addToContext(cid.cid, cid.key, cid.iv);
+      const metadata = await getMetadata(await getItem(cid.cid));
+      return await repackAll(metadata, recipient, codec);
+    };
+
     /**
      * Share a DAG with a given recipient. Creates a new Metadata "shadow dag" pointing to the original DAG.
      * @param cid - root of the DAG | SCID of the Metadata of the root of the DAG
@@ -326,18 +331,10 @@ export class SecureContext {
      */
     const copyFor = async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
       const recipient = recipientPublicKey ? SecureContext.create(Wallet.from(recipientPublicKey)) : this;
-      let newRootCID;
-      const codec = await ipfs.codecs.getCodec('dag-cbor');
-      if (cid instanceof CID) {
-        newRootCID = await repackCIDs(cid, recipient, codec);
-      } else {
-        this.addToContext(cid.cid, cid.key, cid.iv);
-        const metadata = await getMetadata(await getItem(cid.cid));
 
-        newRootCID = await repackAll(metadata, recipient, codec);
-      }
+      const rootCID = await copyDAG(cid, recipient);
 
-      return await recipient.secure(ipfs).share(newRootCID, recipient.wallet.publicKey);
+      return await recipient.secure(ipfs).share(rootCID, recipient.wallet.publicKey);
     };
 
     return {

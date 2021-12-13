@@ -592,7 +592,6 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
   it('should copy the secret with different keys', async () => {
     const aliceContext = SecureContext.create(alice);
     const aliceStore = aliceContext.secure(ipfs);
-
     const doc1 = await aliceStore.put({
       name: 'Alice',
     });
@@ -603,27 +602,23 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
       name: 'User List',
       users: [doc1, doc2],
     });
-
     // Now Alice, can use Bob's public key to copy&re-encrypt her DAG for Bob, and create a shareable CID (SCID) for him
     const shareable = await aliceStore.copyFor(cid, bob.publicKey);
-
     // Later Bob can use his private key
     // and the CID received from Alice to retrieve the content.
     const bobContext = SecureContext.create(bob);
     const bobStore = bobContext.secure(ipfs);
+
     const { value } = await bobStore.get(shareable, { path: 'users/0' });
 
     expect(value).toStrictEqual({ name: 'Alice' });
-
     await expectShared(aliceContext, bobContext, cid, shareable);
-
     await expect(aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
   });
 
   it('should copy the secret with different keys within cold contexts', async () => {
     const aliceContext = SecureContext.create(alice);
     const aliceStore = aliceContext.secure(ipfs);
-
     const doc1 = await aliceStore.put({
       name: 'Alice',
     });
@@ -634,25 +629,21 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
       name: 'User List',
       users: [doc1, doc2],
     });
-
     const scid = await aliceStore.share(cid, alice.publicKey);
     const coldAliceContext = SecureContext.create(alice);
     const coldAliceStore = coldAliceContext.secure(ipfs);
     // Here is Bob, who made his public key known to Alice.
-
     // Now Alice, can use Bob's public key to copy&re-encrypt her DAG for Bob, and create a shareable CID (SCID) for him
     const shareable = await coldAliceStore.copyFor(scid, bob.publicKey);
-
     // Later Bob can use his private key
     // and the CID received from Alice to retrieve the content.
     const coldBobContext = SecureContext.create(bob);
     const bobStore = coldBobContext.secure(ipfs);
+
     const { value } = await bobStore.get(shareable, { path: 'users/0' });
 
     expect(value).toStrictEqual({ name: 'Alice' });
-
     await expectShared(coldAliceContext, coldBobContext, cid, shareable);
-
     await expect(aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
   });
 

@@ -167,6 +167,7 @@ describe('ETHR key resolver', () => {
 
     const did = `did:ethr:${providerConfig.name}:${address}`;
 
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const didDocument = (await didResolver.resolve(did)).didDocument!;
     // console.log(didDocument); // note the #delegate-x keyAgreement key suffix
     const kid = `${did}#delegate-13`;

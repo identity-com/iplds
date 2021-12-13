@@ -182,8 +182,7 @@ const { value } = await aliceMobileStore.get(shareable);
 //  { content: 'secret information' }
 ```
 
-
-User SecureIPFS.copyFor(...) method to deep copy some content, (re-)encrypting it for someone else (and creating a separate Metadata structure for it). You will not have access to the copy once the operation is complete, so the recipient is supposed to be the one pinning it.
+Use SecureIPFS.copyFor(...) method to deep copy some content, (re-)encrypting it for someone else (and creating a separate Metadata structure for it). You will not have access to the copy once the operation is complete, so the recipient is supposed to be the one pinning it.
 
 Example:
 
