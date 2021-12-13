@@ -4,8 +4,9 @@ export const keyBase58 = 'Eh1CPnKc9m6eHfYjvqKPGgY8TYedJCRLE9Pari3GU5s6';
 export const did = `did:sol:${keyBase58}`;
 export const kid = `${did}$default`;
 
+const didContext = ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'];
 export const capabilityInvocationOnly: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
@@ -33,7 +34,7 @@ export const capabilityInvocationOnly: DIDDocument = {
 };
 
 export const keyAgreementOnly: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
@@ -61,7 +62,7 @@ export const keyAgreementOnly: DIDDocument = {
 };
 
 export const noIndexSections: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
@@ -89,7 +90,7 @@ export const noIndexSections: DIDDocument = {
 };
 
 export const messedUpIndex: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
@@ -109,7 +110,7 @@ export const messedUpIndex: DIDDocument = {
 };
 
 export const base64Key: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
@@ -129,7 +130,7 @@ export const base64Key: DIDDocument = {
 };
 
 export const baseMultibaseKey: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
@@ -149,7 +150,7 @@ export const baseMultibaseKey: DIDDocument = {
 };
 
 export const hexKey: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
@@ -169,7 +170,7 @@ export const hexKey: DIDDocument = {
 };
 
 export const hexKeyNoPrefix: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
@@ -189,14 +190,14 @@ export const hexKeyNoPrefix: DIDDocument = {
 };
 
 export const blsTypeKey: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
     {
       id: kid,
       type: 'Bls12381G2Key2020',
-      controller: 'did:example:123',
+      controller: did,
       publicKeyBase58:
         '25ETdUZDVnME6yYuAMjFRCnCPcDmYQcoZDcZuXAfeMhXPvjZg35QmZ7uctBcovA69YDM3Jf7s5BHo4u1y89nY6mHiji8yphZ4AMm4iNCRh35edSg76Dkasu3MY2VS9LnuaVQ',
     },
@@ -210,14 +211,14 @@ export const blsTypeKey: DIDDocument = {
 };
 
 export const jsonTypeKey: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
     {
       id: kid,
       type: 'JsonWebKey2020',
-      controller: 'did:example:123',
+      controller: did,
       publicKeyJwk: {
         crv: 'P-256',
         x: '38M1FDts7Oea7urmseiugGW7tWc3mLpJh6rKe7xINZ8',
@@ -236,14 +237,14 @@ export const jsonTypeKey: DIDDocument = {
 };
 
 export const secpTypeKey: DIDDocument = {
-  '@context': ['https://w3id.org/did/v1.0', 'https://w3id.org/sol/v1'],
+  '@context': didContext,
   id: did,
   controller: [],
   verificationMethod: [
     {
       id: kid,
       type: 'EcdsaSecp256k1VerificationKey2019',
-      controller: 'did:example:123',
+      controller: did,
       publicKeyJwk: {
         crv: 'secp256k1',
         x: 'NtngWpJUr-rlNNbs0u-Aa8e16OwSJu6UiFf0Rdo1oJ4',

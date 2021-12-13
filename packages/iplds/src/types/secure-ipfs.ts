@@ -13,7 +13,20 @@ export interface SecureDAG {
 }
 
 export interface PublicKeyShareable {
-  share(cid: CID | SCID, publicKey: ECKey): Promise<SCID>;
+  /**
+   * Share a DAG with a given recipient. Creates a new Metadata "shadow dag" pointing to the original DAG.
+   * @param cid - root of the DAG | SCID of the Metadata of the root of the DAG
+   * @param recipientPublicKey - public key to use for Metadata encryption; if absent will use your own
+   * @returns - SCID pointing to the new Metadata of the supplied root of the DAG
+   */
+  share(cid: CID | SCID, recipient: ECKey): Promise<SCID>;
+  /**
+   * Deep clone a DAG for a given recipient, re-encrypting each node with a new symmetric key, and creating the Metadata structure for that
+   * @param cid - root of the DAG | SCID of the Metadata of the root of the DAG
+   * @param recipientPublicKey - public key to use for Metadata encryption; if absent will use your own
+   * @returns - SCID pointing to the Metadata of the root of the cloned DAG
+   */
+  copyFor(cid: CID | SCID, recipient: ECKey): Promise<SCID>;
 }
 
 export interface SecureIPFS extends SecureDAG, PublicKeyShareable {}

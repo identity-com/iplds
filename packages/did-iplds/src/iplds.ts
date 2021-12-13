@@ -35,8 +35,8 @@ export type ContextParameters = {
 export class DIDSecureContext {
   private constructor(private readonly context: SecureContext, private readonly didResolver?: Resolvable) {}
 
-  static async create(parameters: ContextParameters): Promise<DIDSecureContext> {
-    const context = await SecureContext.create(parameters.wallet, parameters.deduplication);
+  static create(parameters: ContextParameters): DIDSecureContext {
+    const context = SecureContext.create(parameters.wallet, parameters.deduplication);
 
     return new DIDSecureContext(context, parameters.didResolver);
   }

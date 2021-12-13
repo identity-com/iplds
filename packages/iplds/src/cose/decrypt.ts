@@ -12,7 +12,7 @@ export const decrypt = async function (
 
   recipient[1].epk = fromCOSEKey(cose[3][0][1].epk);
 
-  const cek = await decryptKeyManagement(recipient[0].alg, recipientPrivate, recipient);
+  const cek = decryptKeyManagement(recipient[0].alg, recipientPrivate, recipient);
 
   const iv = getIV(cose);
 

@@ -25,12 +25,12 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     ipfs = create({ url: 'http://localhost:5001/api/v0' });
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     aliceKeyPair = generateKeyPair(curve as ECDHCurve);
     alice = Wallet.from(aliceKeyPair);
     const bobJWK = generateKeyPair(curve as ECDHCurve);
     bob = Wallet.from(bobJWK);
-    ctx = await SecureContext.create(alice);
+    ctx = SecureContext.create(alice);
     secure = ctx.secure(ipfs);
   });
 
@@ -217,7 +217,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
   it('should get content with fresh SecureContext', async () => {
     const cid = await secure.put(SAMPLE_JSON);
     const cose = await secure.share(cid, alice.publicKey);
-    const ctx = await SecureContext.create(alice);
+    const ctx = SecureContext.create(alice);
     const ipfss = ctx.secure(ipfs);
 
     const json = await ipfss.get(cose);
@@ -241,7 +241,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     const cid = await secure.put(parent);
 
     const scid = await secure.share(cid, alice.publicKey);
-    const ctx = await SecureContext.create(alice);
+    const ctx = SecureContext.create(alice);
     const ipfss = ctx.secure(ipfs);
 
     const json = await ipfss.get(scid, { path: 'root/child/a/b/c/0' });
@@ -266,7 +266,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     const cid = await secure.put(parent);
 
     const scid = await secure.share(cid, alice.publicKey);
-    const ctx = await SecureContext.create(alice);
+    const ctx = SecureContext.create(alice);
     const ipfss = ctx.secure(ipfs);
 
     expect((await ipfss.get(scid, { path: 'root/child/a/b/c/0' })).value).toBe(5);
@@ -290,7 +290,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
       image: cid2,
     });
     const scid = await secure.share(compoundDocument, bob.publicKey);
-    const bobCtx = await SecureContext.create(bob);
+    const bobCtx = SecureContext.create(bob);
     const bobIpfs = bobCtx.secure(ipfs);
 
     expect((await bobIpfs.get(scid, { path: 'document/0/guid' })).value).toStrictEqual(
@@ -320,7 +320,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     });
 
     const scid = await secure.share(cid, bob.publicKey);
-    const bobCtx = await SecureContext.create(bob);
+    const bobCtx = SecureContext.create(bob);
     const bobIpfs = bobCtx.secure(ipfs);
 
     expect((await bobIpfs.get(scid, 'a/b/c/d/0/e/f')).value).toBe(5);
@@ -345,7 +345,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     });
 
     const scid = await secure.share(inner, bob.publicKey);
-    const bobCtx = await SecureContext.create(bob);
+    const bobCtx = SecureContext.create(bob);
     const bobIpfs = bobCtx.secure(ipfs);
 
     expect((await bobIpfs.get(scid, 'd/0/e/f')).value).toBe(5);
@@ -356,12 +356,12 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     const cid = await secure.put(obj);
     const root = await secure.share(cid, alice.publicKey);
 
-    const aliceCtx = await SecureContext.create(alice);
+    const aliceCtx = SecureContext.create(alice);
     const aliceIpfs = aliceCtx.secure(ipfs);
 
     const scid = await aliceIpfs.share(root, bob.publicKey);
 
-    const bobCtx = await SecureContext.create(bob);
+    const bobCtx = SecureContext.create(bob);
     const bobIpfs = bobCtx.secure(ipfs);
 
     expect((await bobIpfs.get(scid)).value).toStrictEqual(obj);
@@ -372,12 +372,12 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     const cid = await secure.put(obj);
     const root = await secure.share(cid, alice.publicKey);
 
-    const aliceCtx = await SecureContext.create(alice);
+    const aliceCtx = SecureContext.create(alice);
     const aliceIpfs = aliceCtx.secure(ipfs);
 
     const scid = await aliceIpfs.share(root, bob.publicKey);
 
-    const bobCtx = await SecureContext.create(bob);
+    const bobCtx = SecureContext.create(bob);
     const bobIpfs = bobCtx.secure(ipfs);
 
     expect((await bobIpfs.get(scid, 'a')).value).toBe(10);
@@ -392,12 +392,12 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
 
     const root = await secure.share(cid, alice.publicKey);
 
-    const aliceCtx = await SecureContext.create(alice);
+    const aliceCtx = SecureContext.create(alice);
     const aliceIpfs = aliceCtx.secure(ipfs);
 
     const scid = await aliceIpfs.share(root, bob.publicKey);
 
-    const bobCtx = await SecureContext.create(bob);
+    const bobCtx = SecureContext.create(bob);
     const bobIpfs = bobCtx.secure(ipfs);
 
     expect((await bobIpfs.get(scid, 'a/b')).value).toBe(7);
@@ -422,12 +422,12 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
 
     const root = await secure.share(cid, alice.publicKey);
 
-    const aliceCtx = await SecureContext.create(alice);
+    const aliceCtx = SecureContext.create(alice);
     const aliceIpfs = aliceCtx.secure(ipfs);
 
     const scid = await aliceIpfs.share(root, bob.publicKey);
 
-    const bobCtx = await SecureContext.create(bob);
+    const bobCtx = SecureContext.create(bob);
     const bobIpfs = bobCtx.secure(ipfs);
 
     expect((await bobIpfs.get(scid, 'a/b/c/d/0/e/f')).value).toBe(5);
@@ -440,7 +440,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     });
 
     it('Content CID should be deterministic', async () => {
-      const ctx2 = await SecureContext.create(alice);
+      const ctx2 = SecureContext.create(alice);
       const secure2 = ctx2.secure(ipfs);
 
       const cid2 = await secure2.put(SAMPLE_JSON);
@@ -449,7 +449,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     });
 
     it('Content CID should not be deterministic', async () => {
-      const ctx2 = await SecureContext.create(alice, false);
+      const ctx2 = SecureContext.create(alice, false);
       const secure2 = ctx2.secure(ipfs);
 
       const cid2 = await secure2.put(SAMPLE_JSON);
@@ -458,7 +458,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     });
 
     it('Content CID should not be deterministic with diffrent secret', async () => {
-      const ctx2 = await SecureContext.create(alice, { secret: randomBytes(16) });
+      const ctx2 = SecureContext.create(alice, { secret: randomBytes(16) });
       const secure2 = ctx2.secure(ipfs);
 
       const cid2 = await secure2.put(SAMPLE_JSON);
@@ -466,14 +466,14 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
       expect(cid).not.toStrictEqual(cid2);
     });
 
-    it('should fail with too short deduplication secret', async () => {
-      await expect(SecureContext.create(alice, { secret: randomBytes(15) })).rejects.toThrow(
+    it('should fail with too short deduplication secret', () => {
+      expect(() => SecureContext.create(alice, { secret: randomBytes(15) })).toThrow(
         'Too short deduplication secret. Deduplication secret must be at least 16 bytes',
       );
     });
 
     it('same document should have different CID uploaded by different users', async () => {
-      const ctx2 = await SecureContext.create(bob);
+      const ctx2 = SecureContext.create(bob);
       const secure2 = ctx2.secure(ipfs);
 
       const cid2 = await secure2.put(SAMPLE_JSON);
@@ -496,7 +496,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     const data = { content: 'secret information' };
     // Here is Alice, who has some secret content stored on IPFS.
     const alice = await createECKey();
-    const aliceContext = await SecureContext.create(Wallet.from(alice));
+    const aliceContext = SecureContext.create(Wallet.from(alice));
     const aliceStore = aliceContext.secure(ipfs);
     const cid = await aliceStore.put(data);
 
@@ -508,7 +508,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
     const scidStr = await scid.asString();
     // Later Bob can use his private key
     // and the CID received from Alice to retrieve the content.
-    const bobContext = await SecureContext.create(Wallet.from(bob));
+    const bobContext = SecureContext.create(Wallet.from(bob));
     const bobStore = bobContext.secure(ipfs);
 
     const { value } = await bobStore.get(SCID.from(scidStr));
@@ -537,7 +537,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
       const cid = await secure.put({ text: 'secure' });
       const scid = await secure.share(cid, bob.publicKey);
 
-      const bobContext = await SecureContext.create(bob);
+      const bobContext = SecureContext.create(bob);
       const bobStore = bobContext.secure(ipfs);
 
       const cids = await bobStore.getCIDs(scid);
@@ -552,7 +552,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
 
       const scid = await secure.share(cid2, bob.publicKey);
 
-      const bobContext = await SecureContext.create(bob);
+      const bobContext = SecureContext.create(bob);
       const bobStore = bobContext.secure(ipfs);
 
       const cids = await bobStore.getCIDs(scid);
@@ -579,7 +579,7 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
       });
       const scid = await secure.share(cid, bob.publicKey);
 
-      const bobContext = await SecureContext.create(bob);
+      const bobContext = SecureContext.create(bob);
       const bobStore = bobContext.secure(ipfs);
 
       const cids = await bobStore.getCIDs(scid);
@@ -588,10 +588,127 @@ describe.each([['P-256'], ['K-256'], ['X25519']])('Secure Context: %s', (curve: 
       expect(cids).toEqual(expect.arrayContaining([cid, scid.cid]));
     });
   });
+
+  it('should copy the secret with different keys', async () => {
+    const aliceContext = SecureContext.create(alice);
+    const aliceStore = aliceContext.secure(ipfs);
+    const doc1 = await aliceStore.put({
+      name: 'Alice',
+    });
+    const doc2 = await aliceStore.put({
+      name: 'Bob',
+    });
+    const cid = await aliceStore.put({
+      name: 'User List',
+      users: [doc1, doc2],
+    });
+    // Now Alice, can use Bob's public key to copy&re-encrypt her DAG for Bob, and create a shareable CID (SCID) for him
+    const shareable = await aliceStore.copyFor(cid, bob.publicKey);
+    // Later Bob can use his private key
+    // and the CID received from Alice to retrieve the content.
+    const bobContext = SecureContext.create(bob);
+    const bobStore = bobContext.secure(ipfs);
+
+    const { value } = await bobStore.get(shareable, { path: 'users/0' });
+
+    expect(value).toStrictEqual({ name: 'Alice' });
+    await expectShared(aliceContext, bobContext, cid, shareable);
+    await expect(aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
+  });
+
+  it('should copy the secret with different keys within cold contexts', async () => {
+    const aliceContext = SecureContext.create(alice);
+    const aliceStore = aliceContext.secure(ipfs);
+    const doc1 = await aliceStore.put({
+      name: 'Alice',
+    });
+    const doc2 = await aliceStore.put({
+      name: 'Bob',
+    });
+    const cid = await aliceStore.put({
+      name: 'User List',
+      users: [doc1, doc2],
+    });
+    const scid = await aliceStore.share(cid, alice.publicKey);
+    const coldAliceContext = SecureContext.create(alice);
+    const coldAliceStore = coldAliceContext.secure(ipfs);
+    // Here is Bob, who made his public key known to Alice.
+    // Now Alice, can use Bob's public key to copy&re-encrypt her DAG for Bob, and create a shareable CID (SCID) for him
+    const shareable = await coldAliceStore.copyFor(scid, bob.publicKey);
+    // Later Bob can use his private key
+    // and the CID received from Alice to retrieve the content.
+    const coldBobContext = SecureContext.create(bob);
+    const bobStore = coldBobContext.secure(ipfs);
+
+    const { value } = await bobStore.get(shareable, { path: 'users/0' });
+
+    expect(value).toStrictEqual({ name: 'Alice' });
+    await expectShared(coldAliceContext, coldBobContext, cid, shareable);
+    await expect(aliceStore.get(shareable, { path: 'users/0' })).rejects.toThrowError();
+  });
+
+  const expectShared = async (
+    aliceContext: SecureContext,
+    bobContext: SecureContext,
+    cid: CID,
+    shareable: SCID,
+  ): Promise<void> => {
+    // eslint-disable-next-line dot-notation
+    const innerAliceContext = aliceContext['context'];
+    const rootAliceMeta = innerAliceContext.get(cid.toString());
+
+    // eslint-disable-next-line dot-notation
+    const innerBobContext = bobContext['context'];
+
+    const rootBobMeta = innerBobContext.get((await retrieveContentCID(ipfs, shareable, bobContext)).toString());
+
+    expect(rootAliceMeta?.key).toBeDefined();
+    expect(rootBobMeta?.key).toBeDefined();
+    expect(rootAliceMeta?.key).not.toEqual(rootBobMeta?.key);
+
+    expect(rootAliceMeta?.iv).toBeDefined();
+    expect(rootBobMeta?.iv).toBeDefined();
+    expect(rootAliceMeta?.iv).not.toEqual(rootBobMeta?.iv);
+
+    const aliceChild0 = rootAliceMeta?.links?.[0];
+    const bobChild0 = rootBobMeta?.links?.[0];
+
+    expect(aliceChild0?.iv).toBeDefined();
+    expect(bobChild0?.iv).toBeDefined();
+    expect(aliceChild0?.iv).not.toEqual(bobChild0?.iv);
+
+    if (!aliceChild0 || !bobChild0) {
+      throw new Error("can't be");
+    }
+    const aliceChild0Meta = innerAliceContext.get(aliceChild0.cid.toString());
+    const bobChild0Meta = innerBobContext.get(bobChild0.cid.toString());
+
+    expect(aliceChild0Meta?.key).toBeDefined();
+    expect(bobChild0Meta?.key).toBeDefined();
+    expect(aliceChild0Meta?.key).not.toEqual(bobChild0Meta?.key);
+
+    expect(aliceChild0Meta?.iv).toBeDefined();
+    expect(bobChild0Meta?.iv).toBeDefined();
+    expect(aliceChild0Meta?.iv).not.toEqual(bobChild0Meta?.iv);
+  };
 });
 
 const scidToCose = async (ipfs: IPFSHTTPClient, scid: SCID, codec: BlockCodec): Promise<Cose> => {
   const rawBlock = await ipfs.block.get(scid.cid);
   const decryptedBlock = await decryptAES(rawBlock, scid.key, scid.iv);
   return translate(codec.decode(decryptedBlock));
+};
+
+const retrieveContentCID = async (ipfs: IPFSHTTPClient, scid: SCID, context: SecureContext): Promise<CID> => {
+  const codec = await ipfs.codecs.getCodec('dag-cbor');
+
+  // eslint-disable-next-line dot-notation
+  const block = await context['retrieve'](scid.cid, ipfs);
+
+  // eslint-disable-next-line dot-notation
+  const { content } = await context['wallet'].decryptCOSE(codec.decode(block));
+  const metadata = codec.decode(content);
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+  return metadata.contentCID as CID;
 };

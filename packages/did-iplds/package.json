@@ -34,8 +34,10 @@
     "lint:fix": "yarn lint --fix",
     "size": "size-limit",
     "start": "rollup -cw",
-    "test": "yarn docker:start && yarn test:jest; yarn docker:stop",
-    "test:jest": "jest --verbose"
+    "test": "run-script-os",
+    "test:darwin:linux": "yarn docker:start && yarn test:jest; yarn docker:stop",
+    "test:jest": "jest --verbose",
+    "test:win32": "yarn docker:start && yarn test:jest & yarn docker:stop"
   },
   "lint-staged": {
     "**/*.ts": "yarn lint:fix"

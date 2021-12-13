@@ -97,3 +97,38 @@ export const invertSimpleObject = <T extends Record<PropertyKey, PropertyKey>>(o
 
 export const cloneRecipient = (recipient: Recipient): Recipient =>
   [{ ...recipient[0] }, { ...recipient[1] }, recipient[2].slice(0), recipient[3].map(cloneRecipient)] as Recipient;
+
+export const cloneReplacingCIDs = <T>(source: T, cids: Map<string, CID>): T => {
+  if (Array.isArray(source)) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return source.map((item) => cloneReplacingCIDs(item, cids)) as unknown as T;
+  }
+
+  if (source instanceof Date) {
+    return new Date(source.getTime()) as unknown as T;
+  }
+
+  if (source instanceof CID) {
+    const newCID = cids.get(source.toString());
+    if (!newCID) {
+      throw new Error(`Mapping for ${source.toString()} is absent`);
+    }
+
+    return newCID as unknown as T;
+  }
+
+  if (source && typeof source === 'object') {
+    return Object.getOwnPropertyNames(source).reduce((o, prop) => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      Object.defineProperty(o, prop, Object.getOwnPropertyDescriptor(source, prop)!);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, no-extra-parens, @typescript-eslint/no-explicit-any
+      o[prop] = cloneReplacingCIDs((source as { [key: string]: any })[prop], cids);
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      return o;
+    }, Object.create(Object.getPrototypeOf(source))) as T;
+  }
+
+  return source;
+};

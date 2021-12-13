@@ -32,8 +32,10 @@
     "lint:fix": "yarn lint --fix",
     "size": "size-limit",
     "start": "rollup -cw",
-    "test": "yarn docker:start && yarn test:jest; yarn docker:stop",
-    "test:jest": "jest --verbose"
+    "test": "run-script-os",
+    "test:darwin:linux": "yarn docker:start && yarn test:jest; yarn docker:stop",
+    "test:jest": "jest --verbose",
+    "test:win32": "yarn docker:start && yarn test:jest & yarn docker:stop"
   },
   "lint-staged": {
     "**/*.ts": "yarn lint:fix"
@@ -63,6 +65,7 @@
     "@size-limit/preset-small-lib": "^5.0.4",
     "@types/elliptic": "^6.4.14",
     "electron": "^15.3.0",
+    "run-script-os": "^1.1.6",
     "size-limit": "^5.0.4",
     "tslib": "^2.2.0"
   },
