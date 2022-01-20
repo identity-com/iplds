@@ -22,6 +22,7 @@ export type Receiver = {
 
 export interface DIDShareable {
   share(cid: CID | SCID, receiver: Receiver): Promise<SCID>;
+  copyFor(cid: CID | SCID, receiver: Receiver): Promise<SCID>;
 }
 
 export interface DIDSecureIPFS extends SecureDAG, DIDShareable {}
@@ -90,6 +91,10 @@ export class DIDSecureContext {
       async share(cid: CID | SCID, receiver: Receiver): Promise<SCID> {
         const publicKey = await resolvePublicKey(receiver);
         return await secure.share(cid, publicKey);
+      },
+      async copyFor(cid: CID | SCID, receiver: Receiver): Promise<SCID> {
+        const publicKey = await resolvePublicKey(receiver);
+        return await secure.copyFor(cid, publicKey);
       },
     };
   }

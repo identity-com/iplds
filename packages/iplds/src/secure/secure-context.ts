@@ -393,7 +393,7 @@ export class SecureContext {
       share: async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
         return await share(cid, recipientPublicKey);
       },
-      copyFor: async (cid: SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
+      copyFor: async (cid: CID | SCID, recipientPublicKey?: ECKey): Promise<SCID> => {
         return await copyFor(cid, recipientPublicKey);
       },
       getCIDs: async (cid: CID | SCID): Promise<CID[]> => {
