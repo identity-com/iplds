@@ -1,6 +1,6 @@
 {
   "name": "@identity.com/did-iplds",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "IPLDS - Secure DAG storage on IPFS",
   "keywords": [
     "ipfs",
