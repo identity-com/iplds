@@ -44,7 +44,7 @@
     "@identity.com/sol-did-client": "^1.0.0-beta",
     "@size-limit/preset-small-lib": "^5.0.4",
     "@types/elliptic": "^6.4.14",
-    "electron": "^15.3.0",
+    "electron": "^18.3.7",
     "ethers": "^5.5.1",
     "ethr-did": "^2.1.5",
     "ethr-did-resolver": "^5.0.2",

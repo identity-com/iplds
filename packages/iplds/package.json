@@ -64,7 +64,7 @@
     "@peculiar/webcrypto": "^1.2.3",
     "@size-limit/preset-small-lib": "^5.0.4",
     "@types/elliptic": "^6.4.14",
-    "electron": "^15.3.0",
+    "electron": "^18.3.7",
     "run-script-os": "^1.1.6",
     "size-limit": "^5.0.4",
     "tslib": "^2.2.0"
